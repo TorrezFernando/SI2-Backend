@@ -23,7 +23,7 @@ Todas las contraseñas cumplen con las políticas de seguridad (mínimo 8 caract
 | **Cliente** | `cliente@raices.com` | `Password.123@` |
 
 ## 🛠 Tecnologías Utilizadas
-* **Backend:** FastAPI (Python), SQLAlchemy, SQLite
+* **Backend:** FastAPI (Python), SQLAlchemy, PostgreSQL
 * **Frontend:** Angular 18 (TypeScript), HTML5, CSS3 Nativo
 
 ## Instrucciones de Ejecución Local
