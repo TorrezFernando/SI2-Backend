@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
+from decimal import Decimal
+from datetime import date, datetime
 
 # Esquemas para Token
 class Token(BaseModel):
@@ -46,3 +48,90 @@ class RolResponse(RolBase):
 
     class Config:
         from_attributes = True
+
+# --- Nuevos Esquemas (Sprint 1) ---
+
+# Esquemas para Cliente
+class ClienteBase(BaseModel):
+    ci_usuario: str
+
+class ClienteCreate(ClienteBase):
+    pass
+
+class ClienteResponse(ClienteBase):
+    id_cliente: int
+    class Config:
+        from_attributes = True
+
+# Esquemas para Propietario
+class PropietarioBase(BaseModel):
+    ci_usuario: str
+
+class PropietarioCreate(PropietarioBase):
+    pass
+
+class PropietarioResponse(PropietarioBase):
+    id_propietario: int
+    class Config:
+        from_attributes = True
+
+# Esquemas para Agente
+class AgenteBase(BaseModel):
+    ci_usuario: str
+
+class AgenteCreate(AgenteBase):
+    pass
+
+class AgenteResponse(AgenteBase):
+    id_agente: int
+    class Config:
+        from_attributes = True
+
+# Esquemas para Imagen
+class ImagenBase(BaseModel):
+    url: str
+
+class ImagenResponse(ImagenBase):
+    id_imagen: int
+    id_propiedad: int
+    class Config:
+        from_attributes = True
+
+# Esquemas para Caracteristica
+class CaracteristicaBase(BaseModel):
+    nombre: str
+    valor: str
+
+class CaracteristicaResponse(CaracteristicaBase):
+    id_caracteristica: int
+    id_propiedad: int
+    class Config:
+        from_attributes = True
+
+class CaracteristicaCreate(CaracteristicaBase):
+    pass
+
+# Esquemas para Propiedad
+class PropiedadBase(BaseModel):
+    id_propietario: int
+    id_agente: int
+    titulo: str
+    direccion: str
+    precio: Decimal
+    tipo_operacion: str
+    estado: Optional[str] = 'Disponible'
+
+class PropiedadCreate(PropiedadBase):
+    caracteristicas: Optional[List[CaracteristicaCreate]] = []
+
+class PropiedadUpdate(BaseModel):
+    estado: str
+
+class PropiedadResponse(PropiedadBase):
+    id_propiedad: int
+    imagenes: List[ImagenResponse] = []
+    caracteristicas: List[CaracteristicaResponse] = []
+    
+    class Config:
+        from_attributes = True
+

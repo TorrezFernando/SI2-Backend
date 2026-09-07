@@ -13,7 +13,7 @@ SECRET_KEY = "clavesecretaparaelproyectoraices" # En producción, usar variable 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="gestion_usuarios/auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
@@ -51,4 +51,19 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     user = db.query(Usuario).filter(Usuario.correo == correo).first()
     if user is None:
         raise credentials_exception
+    return user
+
+def get_current_tenant_user(user: Usuario = Depends(get_current_user)):
+    """Asegura que el usuario autenticado pertenece a un Tenant"""
+    if user.id_tenant is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Acceso denegado. El usuario no pertenece a ninguna inmobiliaria (Tenant)."
+        )
+    # Validar si el tenant está activo (opcional, pero buena práctica)
+    if not user.tenant.estado:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="La inmobiliaria se encuentra inactiva o suspendida."
+        )
     return user
