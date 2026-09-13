@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, Numeric, Date, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, Numeric, Date, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database.database import Base
@@ -6,24 +6,27 @@ from database.database import Base
 class Bitacora(Base):
     __tablename__ = "bitacora"
     id_bitacora = Column(Integer, primary_key=True, index=True)
-    ci_usuario = Column(String(20), ForeignKey("usuario.ci", onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
+    id_usuario = Column(Integer, ForeignKey("usuario.id", onupdate="CASCADE", ondelete="Restrict"), nullable=False)
+    id_tenant = Column(Integer, ForeignKey("tenant.id_tenant", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
     accion = Column(String(255), nullable=False)
     fecha_hora = Column(TIMESTAMP, server_default=func.current_timestamp())
     
     usuario = relationship("Usuario", back_populates="bitacoras")
+    tenant = relationship("Tenant", back_populates="bitacoras")
 
 class Propietario(Base):
     __tablename__ = "propietario"
     id_propietario = Column(Integer, primary_key=True, index=True)
-    ci_usuario = Column(String(20), ForeignKey("usuario.ci", onupdate="CASCADE", ondelete="CASCADE"), unique=True, nullable=False)
+    id_usuario = Column(Integer, ForeignKey("usuario.id", onupdate="CASCADE", ondelete="CASCADE"), unique=True, nullable=False)
     
     usuario = relationship("Usuario", back_populates="propietario")
     propiedades = relationship("Propiedad", back_populates="propietario")
+    
 
 class Agente(Base):
     __tablename__ = "agente"
     id_agente = Column(Integer, primary_key=True, index=True)
-    ci_usuario = Column(String(20), ForeignKey("usuario.ci", onupdate="CASCADE", ondelete="CASCADE"), unique=True, nullable=False)
+    id_usuario = Column(Integer, ForeignKey("usuario.id", onupdate="CASCADE", ondelete="CASCADE"), unique=True, nullable=False)
     
     usuario = relationship("Usuario", back_populates="agente")
     propiedades = relationship("Propiedad", back_populates="agente")
@@ -33,7 +36,7 @@ class Agente(Base):
 class Cliente(Base):
     __tablename__ = "cliente"
     id_cliente = Column(Integer, primary_key=True, index=True)
-    ci_usuario = Column(String(20), ForeignKey("usuario.ci", onupdate="CASCADE", ondelete="CASCADE"), unique=True, nullable=False)
+    id_usuario = Column(Integer, ForeignKey("usuario.id", onupdate="CASCADE", ondelete="CASCADE"), unique=True, nullable=False)
     
     usuario = relationship("Usuario", back_populates="cliente")
     visitas = relationship("Visita", back_populates="cliente")
@@ -42,23 +45,41 @@ class Cliente(Base):
 class Propiedad(Base):
     __tablename__ = "propiedad"
     id_propiedad = Column(Integer, primary_key=True, index=True)
-    id_propietario = Column(Integer, ForeignKey("propietario.id_propietario", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
-    id_agente = Column(Integer, ForeignKey("agente.id_agente", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
+    id_propietario = Column(Integer, ForeignKey("propietario.id_propietario", ondelete="RESTRICT"), nullable=False)
+    id_agente = Column(Integer, ForeignKey("agente.id_agente", ondelete="RESTRICT"), nullable=False)
+    id_tipo_inmueble = Column(Integer, ForeignKey("tipo_inmueble.id_tipo_inmueble", ondelete="RESTRICT"), nullable=False)
+    id_zona = Column(Integer, ForeignKey("zona.id_zona", ondelete="RESTRICT"), nullable=False)
     titulo = Column(String(150), nullable=False)
     direccion = Column(String(255), nullable=False)
     precio = Column(Numeric(12, 2), nullable=False)
-    tipo_operacion = Column(String(20), nullable=False) # 'Venta', 'Alquiler', 'Anticretico'
-    estado = Column(String(20), default='Disponible') # 'Disponible', 'Reservada', 'Vendida', 'Alquilada'
-    
-    # FK for Multi-Tenant
-    id_tenant = Column(Integer, ForeignKey("tenant.id_tenant"), nullable=False)
-    
+    tipo_operacion = Column(String(20), nullable=False)
+    estado = Column(String(20), default='Disponible')
+    habitaciones = Column(Integer)
+    banos = Column(Integer)
+    superficie_m2 = Column(Numeric(10, 2))
+    garaje = Column(Boolean, default=False)
+    antiguedad_anios = Column(Integer)
+    id_tenant = Column(Integer, ForeignKey("tenant.id_tenant", ondelete="RESTRICT"), nullable=False)
+
     propietario = relationship("Propietario", back_populates="propiedades")
+    tenant = relationship("Tenant", back_populates="propiedades")
     agente = relationship("Agente", back_populates="propiedades")
+    tipo_inmueble = relationship("TipoInmueble")
+    zona = relationship("Zona")
     imagenes = relationship("Imagen", back_populates="propiedad")
     caracteristicas = relationship("Caracteristica", back_populates="propiedad")
     visitas = relationship("Visita", back_populates="propiedad")
     contratos = relationship("Contrato", back_populates="propiedad")
+
+class TipoInmueble(Base):
+    __tablename__ = "tipo_inmueble"
+    id_tipo_inmueble = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(50), nullable=False, unique=True)  # Casa, Departamento, Terreno, Oficina...
+
+class Zona(Base):
+    __tablename__ = "zona"
+    id_zona = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(100), nullable=False, unique=True)  # "Zona Sur", "Equipetrol", etc.
 
 class Imagen(Base):
     __tablename__ = "imagen"
@@ -80,6 +101,7 @@ class Caracteristica(Base):
 class Visita(Base):
     __tablename__ = "visita"
     id_visita = Column(Integer, primary_key=True, index=True)
+    id_tenant = Column(Integer, ForeignKey("tenant.id_tenant", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
     id_cliente = Column(Integer, ForeignKey("cliente.id_cliente", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
     id_propiedad = Column(Integer, ForeignKey("propiedad.id_propiedad", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
     id_agente = Column(Integer, ForeignKey("agente.id_agente", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
@@ -90,10 +112,12 @@ class Visita(Base):
     cliente = relationship("Cliente", back_populates="visitas")
     propiedad = relationship("Propiedad", back_populates="visitas")
     agente = relationship("Agente", back_populates="visitas")
+    tenant = relationship("Tenant", back_populates="visitas")
 
 class Contrato(Base):
     __tablename__ = "contrato"
     id_contrato = Column(Integer, primary_key=True, index=True)
+    id_tenant = Column(Integer, ForeignKey("tenant.id_tenant", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
     id_cliente = Column(Integer, ForeignKey("cliente.id_cliente", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
     id_propiedad = Column(Integer, ForeignKey("propiedad.id_propiedad", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
     id_agente = Column(Integer, ForeignKey("agente.id_agente", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
@@ -106,6 +130,7 @@ class Contrato(Base):
     propiedad = relationship("Propiedad", back_populates="contratos")
     agente = relationship("Agente", back_populates="contratos")
     pagos = relationship("Pago", back_populates="contrato")
+    tenant = relationship("Tenant", back_populates="contratos")
 
 class Pago(Base):
     __tablename__ = "pago"
