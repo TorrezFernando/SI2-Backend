@@ -1,5 +1,4 @@
 import sys
-from datetime import datetime, date, timedelta
 from decimal import Decimal
 from sqlalchemy.orm import Session
 
@@ -9,10 +8,13 @@ from modulo_administracion_configuracion.models import Tenant
 from gestion_usuarios.models import Rol, Usuario
 from modulo_inmuebles.models import (
     Propietario, Agente, Cliente, Propiedad, Imagen,
-    Caracteristica, Visita, Contrato, Pago, Bitacora,
-    TipoInmueble, Zona
+    Caracteristica, TipoInmueble, Zona
 )
 from auth import get_password_hash
+
+from datasets import (
+    tenant_raices, tenant_sunrise, tenant_delsur, tenant_metropoli, tenant_horizonte
+)
 
 if sys.stdout.encoding != 'utf-8':
     try:
@@ -20,26 +22,179 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
+# Lista de datasets a procesar. Agregar un tenant nuevo es tan simple como
+# crear su archivo en datasets/ e incluirlo aqui.
+DATASETS = [tenant_raices, tenant_sunrise, tenant_delsur, tenant_metropoli, tenant_horizonte]
+
+ROLES_GLOBALES = ["Administrador", "Agente", "Cliente", "Propietario"]
+
+PERFIL_POR_ROL = {
+    "Agente": Agente,
+    "Propietario": Propietario,
+    "Cliente": Cliente,
+    # "Administrador" no tiene tabla de perfil especializado
+}
+
+
+def crear_roles(db: Session):
+    print("\n[1] Creando Roles del Sistema (globales)...")
+    roles_map = {}
+    for nombre in ROLES_GLOBALES:
+        rol = db.query(Rol).filter(Rol.nombre == nombre).first()
+        if not rol:
+            rol = Rol(nombre=nombre)
+            db.add(rol)
+            db.commit()
+            db.refresh(rol)
+        roles_map[nombre] = rol
+    print(f"[+] {len(roles_map)} roles listos: {', '.join(roles_map.keys())}")
+    return roles_map
+
+
+def crear_catalogos_base(db: Session):
+    """Catalogos globales minimos que deben existir antes de crear propiedades.
+    Cada dataset puede referenciar tipos/zonas nuevas; se crean sobre la marcha
+    en crear_propiedades() si no existen todavia."""
+    print("\n[2] Verificando catalogos globales (Tipo de Inmueble y Zona)...")
+    tipos_base = ["Departamento", "Casa", "Oficina", "Terreno"]
+    for nombre in tipos_base:
+        if not db.query(TipoInmueble).filter(TipoInmueble.nombre == nombre).first():
+            db.add(TipoInmueble(nombre=nombre))
+    db.commit()
+    print("[+] Catalogo base de tipos de inmueble listo.")
+
+
+def obtener_o_crear_tipo_inmueble(db: Session, nombre: str) -> TipoInmueble:
+    tipo = db.query(TipoInmueble).filter(TipoInmueble.nombre == nombre).first()
+    if not tipo:
+        tipo = TipoInmueble(nombre=nombre)
+        db.add(tipo)
+        db.commit()
+        db.refresh(tipo)
+    return tipo
+
+
+def obtener_o_crear_zona(db: Session, nombre: str) -> Zona:
+    zona = db.query(Zona).filter(Zona.nombre == nombre).first()
+    if not zona:
+        zona = Zona(nombre=nombre)
+        db.add(zona)
+        db.commit()
+        db.refresh(zona)
+    return zona
+
+
+def crear_tenant(db: Session, datos_tenant: dict) -> Tenant:
+    tenant = db.query(Tenant).filter(Tenant.slug == datos_tenant["slug"]).first()
+    if not tenant:
+        tenant = Tenant(
+            nombre=datos_tenant["nombre"],
+            slug=datos_tenant["slug"],
+            plan=datos_tenant["plan"],
+            max_propiedades=datos_tenant["max_propiedades"],
+            estado=True,
+        )
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+    return tenant
+
+
+def crear_usuarios_y_perfiles(db: Session, tenant: Tenant, usuarios_data: list, roles_map: dict) -> dict:
+    """Crea los usuarios de un tenant y su perfil especializado.
+    Devuelve un dict {correo: perfil_o_usuario} para uso posterior."""
+    perfiles_por_correo = {}
+    for u in usuarios_data:
+        rol = roles_map[u["rol"]]
+        usuario = db.query(Usuario).filter(
+            Usuario.correo == u["correo"], Usuario.id_tenant == tenant.id_tenant
+        ).first()
+        if not usuario:
+            usuario = Usuario(
+                ci=u["ci"],
+                nombre=u["nombre"],
+                correo=u["correo"],
+                telefono=u["telefono"],
+                id_rol=rol.id_rol,
+                id_tenant=tenant.id_tenant,
+                password_hash=get_password_hash(u["password"]),
+            )
+            db.add(usuario)
+            db.commit()
+            db.refresh(usuario)
+
+        ModeloPerfil = PERFIL_POR_ROL.get(u["rol"])
+        if ModeloPerfil:
+            perfil = db.query(ModeloPerfil).filter(ModeloPerfil.id_usuario == usuario.id).first()
+            if not perfil:
+                perfil = ModeloPerfil(id_usuario=usuario.id)
+                db.add(perfil)
+                db.commit()
+                db.refresh(perfil)
+            perfiles_por_correo[u["correo"]] = perfil
+        else:
+            perfiles_por_correo[u["correo"]] = usuario
+
+    return perfiles_por_correo
+
+
+def crear_propiedades(db: Session, tenant: Tenant, propiedades_data: list,
+                       propietario: Propietario, agente: Agente):
+    creadas = 0
+    for p in propiedades_data:
+        existente = db.query(Propiedad).filter(
+            Propiedad.titulo == p["titulo"], Propiedad.id_tenant == tenant.id_tenant
+        ).first()
+        if existente:
+            continue
+
+        tipo_inmueble = obtener_o_crear_tipo_inmueble(db, p["tipo_inmueble"])
+        zona = obtener_o_crear_zona(db, p["zona"])
+
+        prop = Propiedad(
+            titulo=p["titulo"],
+            direccion=p["direccion"],
+            precio=Decimal(p["precio"]),
+            tipo_operacion=p["tipo_operacion"],
+            estado=p["estado"],
+            habitaciones=p["habitaciones"],
+            banos=p["banos"],
+            superficie_m2=Decimal(p["superficie_m2"]) if p["superficie_m2"] is not None else None,
+            garaje=p["garaje"],
+            antiguedad_anios=p["antiguedad_anios"],
+            id_propietario=propietario.id_propietario,
+            id_agente=agente.id_agente,
+            id_tipo_inmueble=tipo_inmueble.id_tipo_inmueble,
+            id_zona=zona.id_zona,
+            id_tenant=tenant.id_tenant,
+        )
+        db.add(prop)
+        db.commit()
+        db.refresh(prop)
+
+        for nombre_c, valor_c in p["caracteristicas"]:
+            db.add(Caracteristica(id_propiedad=prop.id_propiedad, nombre=nombre_c, valor=valor_c))
+
+        for url_img in p["imagenes"]:
+            db.add(Imagen(id_propiedad=prop.id_propiedad, url=url_img))
+
+        db.commit()
+        creadas += 1
+
+    return creadas
+
 
 def poblar_base_de_datos(reset: bool = False):
     print("=" * 60)
-    print("[*] INICIANDO POBLADO DE LA BASE DE DATOS - INMOBILIARIA RAICES")
+    print("[*] INICIANDO POBLADO MULTI-TENANT (5 INMOBILIARIAS)")
     print("=" * 60)
 
     try:
-        # Probar conexión
-        with engine.connect() as conn:
+        with engine.connect():
             print("[+] Conexion exitosa a PostgreSQL.")
-    except UnicodeDecodeError:
-        print("\n[!] ERROR DE CONEXION A POSTGRESQL:")
-        print("  PostgreSQL respondio con un error de autenticacion:")
-        print("  -> La contrasena para el usuario 'postgres' no coincide, o la base de datos 'raices_db' no existe.")
-        print("  -> Configura tu contrasena real en el archivo .env o en database/database.py.")
-        sys.exit(1)
     except Exception as e:
         print("\n[!] ERROR DE CONEXION A POSTGRESQL:")
-        print("  Verifica tus credenciales en el archivo .env o en database/database.py")
-        print("  Asegurate de que el servicio de PostgreSQL este activo y la base de datos exista.")
+        print("  Verifica tus credenciales en el archivo .env")
         print(f"  Detalle: {e}\n")
         sys.exit(1)
 
@@ -52,400 +207,41 @@ def poblar_base_de_datos(reset: bool = False):
     Base.metadata.create_all(bind=engine)
     print("[+] Estructura de tablas lista.")
 
+    resumen_credenciales = []
+
     with Session(engine) as db:
-        # 1. ROLES
-        print("\n[1] Creando Roles del Sistema...")
-        roles_def = [
-            (1, "Administrador"),
-            (2, "Agente"),
-            (3, "Cliente"),
-            (4, "Propietario")
-        ]
-        for id_r, nom in roles_def:
-            r = db.query(Rol).filter(Rol.id_rol == id_r).first()
-            if not r:
-                r = Rol(id_rol=id_r, nombre=nom)
-                db.add(r)
-            else:
-                r.nombre = nom
-        db.commit()
-        print("[+] Roles registrados (Administrador, Agente, Cliente, Propietario).")
+        roles_map = crear_roles(db)
+        crear_catalogos_base(db)
 
-        # 2. TENANT (INMOBILIARIA)
-        print("\n[2] Creando Inmobiliaria (Tenant)...")
-        tenant = db.query(Tenant).filter(Tenant.nombre == "Inmobiliaria Raíces").first()
-        if not tenant:
-            tenant = Tenant(
-                nombre="Inmobiliaria Raíces",
-                slug="raices",
-                plan="pro",
-                max_propiedades=100,
-                estado=True,
-                fecha_vencimiento_pago=date.today() + timedelta(days=365)
-            )
-            db.add(tenant)
-            db.commit()
-            db.refresh(tenant)
-        print(f"[+] Tenant activo: {tenant.nombre} (ID: {tenant.id_tenant}, Plan: {tenant.plan}).")
+        for dataset in DATASETS:
+            print(f"\n{'=' * 60}")
+            print(f"[*] Procesando tenant: {dataset.TENANT['nombre']} (slug: {dataset.TENANT['slug']})")
+            print("=" * 60)
 
-        # 3. USUARIOS
-        print("\n[3] Creando Usuarios de Prueba...")
-        usuarios_data = [
-            {
-                "ci": "1234567",
-                "nombre": "Admin Raíces",
-                "correo": "admin@raices.com",
-                "telefono": "77712345",
-                "id_rol": 1,
-                "password": "Admin.123@"
-            },
-            {
-                "ci": "2000000",
-                "nombre": "Ana Agente",
-                "correo": "agente@raices.com",
-                "telefono": "70000001",
-                "id_rol": 2,
-                "password": "Password.123@"
-            },
-            {
-                "ci": "3000000",
-                "nombre": "Pablo Propietario",
-                "correo": "propietario@raices.com",
-                "telefono": "70000002",
-                "id_rol": 4,
-                "password": "Password.123@"
-            },
-            {
-                "ci": "4000000",
-                "nombre": "Carlos Cliente",
-                "correo": "cliente@raices.com",
-                "telefono": "70000003",
-                "id_rol": 3,
-                "password": "Password.123@"
-            },
-            # Usuario admin adicional para compatibilidad con scripts existentes
-            {
-                "ci": "123456",
-                "nombre": "Admin Premium",
-                "correo": "admin@premium.com",
-                "telefono": "70011223",
-                "id_rol": 1,
-                "password": "Admin123!"
-            }
-        ]
+            tenant = crear_tenant(db, dataset.TENANT)
+            print(f"[+] Tenant listo (ID: {tenant.id_tenant}).")
 
-        usuarios_creados = {}
-        for u_data in usuarios_data:
-            user = db.query(Usuario).filter(
-                Usuario.correo == u_data["correo"],
-                Usuario.id_tenant == tenant.id_tenant
-            ).first()
-            if not user:
-                user = Usuario(
-                    ci=u_data["ci"],
-                    nombre=u_data["nombre"],
-                    correo=u_data["correo"],
-                    telefono=u_data["telefono"],
-                    id_rol=u_data["id_rol"],
-                    id_tenant=tenant.id_tenant,
-                    password_hash=get_password_hash(u_data["password"])
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
-            else:
-                user.id_rol = u_data["id_rol"]
-                db.commit()
-            usuarios_creados[u_data["correo"]] = user
-        print("[+] Usuarios registrados con contraseñas encriptadas (bcrypt).")
+            perfiles = crear_usuarios_y_perfiles(db, tenant, dataset.USUARIOS, roles_map)
+            print(f"[+] {len(dataset.USUARIOS)} usuarios y perfiles listos.")
 
-        # 4. PERFILES (Agente, Propietario, Cliente)
-        print("\n[4] Vinculando Perfiles Especializados...")
+            propietario = perfiles[dataset.PROPIETARIO_CORREO]
+            agente = perfiles[dataset.AGENTE_CORREO]
 
-        usuario_agente = usuarios_creados["agente@raices.com"]
-        usuario_propietario = usuarios_creados["propietario@raices.com"]
-        usuario_cliente = usuarios_creados["cliente@raices.com"]
+            num_creadas = crear_propiedades(db, tenant, dataset.PROPIEDADES, propietario, agente)
+            print(f"[+] {num_creadas} propiedades nuevas creadas (de {len(dataset.PROPIEDADES)} en el dataset).")
 
-        agente = db.query(Agente).filter(Agente.id_usuario == usuario_agente.id).first()
-        if not agente:
-            agente = Agente(id_usuario=usuario_agente.id)
-            db.add(agente)
-            db.commit()
-            db.refresh(agente)
-
-        propietario = db.query(Propietario).filter(Propietario.id_usuario == usuario_propietario.id).first()
-        if not propietario:
-            propietario = Propietario(id_usuario=usuario_propietario.id)
-            db.add(propietario)
-            db.commit()
-            db.refresh(propietario)
-
-        cliente = db.query(Cliente).filter(Cliente.id_usuario == usuario_cliente.id).first()
-        if not cliente:
-            cliente = Cliente(id_usuario=usuario_cliente.id)
-            db.add(cliente)
-            db.commit()
-            db.refresh(cliente)
-        print("[+] Perfiles de Agente, Propietario y Cliente creados.")
-
-        # 4.5 CATALOGOS: TIPOS DE INMUEBLE Y ZONAS
-        print("\n[4.5] Creando Catalogos (Tipos de Inmueble y Zonas)...")
-
-        tipos_inmueble_nombres = ["Departamento", "Casa", "Oficina", "Terreno"]
-        tipos_inmueble = {}
-        for nom in tipos_inmueble_nombres:
-            t = db.query(TipoInmueble).filter(TipoInmueble.nombre == nom).first()
-            if not t:
-                t = TipoInmueble(nombre=nom)
-                db.add(t)
-                db.commit()
-                db.refresh(t)
-            tipos_inmueble[nom] = t
-
-        zonas_nombres = ["Equipetrol", "Las Palmas", "Sirari", "Zona Norte", "Segundo Anillo"]
-        zonas = {}
-        for nom in zonas_nombres:
-            z = db.query(Zona).filter(Zona.nombre == nom).first()
-            if not z:
-                z = Zona(nombre=nom)
-                db.add(z)
-                db.commit()
-                db.refresh(z)
-            zonas[nom] = z
-
-        print(f"[+] {len(tipos_inmueble)} tipos de inmueble y {len(zonas)} zonas creadas.")
-
-        # 5. PROPIEDADES
-        print("\n[5] Creando Inmuebles y Propiedades de Demostracion...")
-        propiedades_data = [
-            {
-                "titulo": "Departamento de Lujo en Equipetrol",
-                "tipo_inmueble": "Departamento",
-                "zona": "Equipetrol",
-                "direccion": "Av. San Martín, Edificio SkyTower Piso 8, Equipetrol, Santa Cruz",
-                "precio": Decimal("145000.00"),
-                "tipo_operacion": "Venta",
-                "estado": "Disponible",
-                "habitaciones": 3,
-                "banos": 2,
-                "superficie_m2": Decimal("125.00"),
-                "garaje": True,
-                "antiguedad_anios": 2,
-                "caracteristicas": [
-                    ("Vista", "Panorámica ciudad"),
-                    ("Amoblado", "Parcial"),
-                    ("Piscina y Churrasquera", "Áreas comunes")
-                ],
-                "imagenes": [
-                    "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80",
-                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1000&q=80"
-                ]
-            },
-            {
-                "titulo": "Casa Familiar con Jardín y Piscina",
-                "tipo_inmueble": "Casa",
-                "zona": "Las Palmas",
-                "direccion": "Barrio Las Palmas, Calle Los Tajibos #45, Santa Cruz",
-                "precio": Decimal("285000.00"),
-                "tipo_operacion": "Venta",
-                "estado": "Disponible",
-                "habitaciones": 4,
-                "banos": 5,
-                "superficie_m2": Decimal("320.00"),
-                "garaje": True,
-                "antiguedad_anios": 8,
-                "caracteristicas": [
-                    ("Superficie Terreno", "450 m²"),
-                    ("Piscina privada", "Sí")
-                ],
-                "imagenes": [
-                    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1000&q=80",
-                    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80"
-                ]
-            },
-            {
-                "titulo": "Monoambiente Amoblado de Estilo Moderno",
-                "tipo_inmueble": "Departamento",
-                "zona": "Sirari",
-                "direccion": "Sirari, Calle Los Gomeros #120, Piso 3",
-                "precio": Decimal("480.00"),
-                "tipo_operacion": "Alquiler",
-                "estado": "Disponible",
-                "habitaciones": 1,
-                "banos": 1,
-                "superficie_m2": Decimal("45.00"),
-                "garaje": False,
-                "antiguedad_anios": 3,
-                "caracteristicas": [
-                    ("Amoblado", "Completamente equipado"),
-                    ("Servicios incluidos", "Internet y Expensas")
-                ],
-                "imagenes": [
-                    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1000&q=80"
-                ]
-            },
-            {
-                "titulo": "Casa en Condominio Cerrado con Seguridad 24/7",
-                "tipo_inmueble": "Casa",
-                "zona": "Zona Norte",
-                "direccion": "Zona Norte Km 9, Condominio Sevilla Los Jardines",
-                "precio": Decimal("38000.00"),
-                "tipo_operacion": "Anticretico",
-                "estado": "Disponible",
-                "habitaciones": 3,
-                "banos": 3,
-                "superficie_m2": Decimal("250.00"),
-                "garaje": True,
-                "antiguedad_anios": 5,
-                "caracteristicas": [
-                    ("Club House", "Canchas y piscinas")
-                ],
-                "imagenes": [
-                    "https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=1000&q=80"
-                ]
-            },
-            {
-                "titulo": "Oficina Corporativa en Torre Empresarial",
-                "tipo_inmueble": "Oficina",
-                "zona": "Segundo Anillo",
-                "direccion": "Av. Cristóbal de Mendoza, 2do Anillo, Torre Dúo",
-                "precio": Decimal("1200.00"),
-                "tipo_operacion": "Alquiler",
-                "estado": "Disponible",
-                "habitaciones": None,
-                "banos": 2,
-                "superficie_m2": Decimal("85.00"),
-                "garaje": True,
-                "antiguedad_anios": 4,
-                "caracteristicas": [
-                    ("Divisiones", "3 ambientes + recepción")
-                ],
-                "imagenes": [
-                    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1000&q=80"
-                ]
-            }
-        ]
-
-        for p_data in propiedades_data:
-            prop = db.query(Propiedad).filter(
-                Propiedad.titulo == p_data["titulo"],
-                Propiedad.id_tenant == tenant.id_tenant
-            ).first()
-
-            if not prop:
-                prop = Propiedad(
-                    titulo=p_data["titulo"],
-                    direccion=p_data["direccion"],
-                    precio=p_data["precio"],
-                    tipo_operacion=p_data["tipo_operacion"],
-                    estado=p_data["estado"],
-                    habitaciones=p_data["habitaciones"],
-                    banos=p_data["banos"],
-                    superficie_m2=p_data["superficie_m2"],
-                    garaje=p_data["garaje"],
-                    antiguedad_anios=p_data["antiguedad_anios"],
-                    id_propietario=propietario.id_propietario,
-                    id_agente=agente.id_agente,
-                    id_tipo_inmueble=tipos_inmueble[p_data["tipo_inmueble"]].id_tipo_inmueble,
-                    id_zona=zonas[p_data["zona"]].id_zona,
-                    id_tenant=tenant.id_tenant
-                )
-                db.add(prop)
-                db.commit()
-                db.refresh(prop)
-
-                # Características
-                for nom_c, val_c in p_data["caracteristicas"]:
-                    caract = Caracteristica(
-                        id_propiedad=prop.id_propiedad,
-                        nombre=nom_c,
-                        valor=val_c
-                    )
-                    db.add(caract)
-
-                # Imágenes
-                for url_img in p_data["imagenes"]:
-                    img = Imagen(
-                        id_propiedad=prop.id_propiedad,
-                        url=url_img
-                    )
-                    db.add(img)
-
-                db.commit()
-
-        print(f"[+] {len(propiedades_data)} Propiedades creadas con caracteristicas e imagenes.")
-
-        # 6. VISITAS Y CONTRATOS
-        print("\n[6] Creando Visitas y Contratos de Muestra...")
-        primera_prop = db.query(Propiedad).filter(Propiedad.id_tenant == tenant.id_tenant).first()
-        if primera_prop:
-            visita = db.query(Visita).filter(Visita.id_propiedad == primera_prop.id_propiedad).first()
-            if not visita:
-                visita = Visita(
-                    id_cliente=cliente.id_cliente,
-                    id_propiedad=primera_prop.id_propiedad,
-                    id_agente=agente.id_agente,
-                    id_tenant=tenant.id_tenant,
-                    fecha_hora=datetime.now() + timedelta(days=2, hours=4),
-                    comentario="Cliente interesado en conocer las areas comunes y formas de financiamiento.",
-                    estado="Programada"
-                )
-                db.add(visita)
-
-            contrato = db.query(Contrato).filter(Contrato.id_propiedad == primera_prop.id_propiedad).first()
-            if not contrato:
-                contrato = Contrato(
-                    id_cliente=cliente.id_cliente,
-                    id_propiedad=primera_prop.id_propiedad,
-                    id_agente=agente.id_agente,
-                    id_tenant=tenant.id_tenant,
-                    tipo_contrato="Reserva de Venta",
-                    monto_total=primera_prop.precio,
-                    fecha_inicio=date.today(),
-                    fecha_fin=date.today() + timedelta(days=90)
-                )
-                db.add(contrato)
-                db.commit()
-                db.refresh(contrato)
-
-                pago = Pago(
-                    id_contrato=contrato.id_contrato,
-                    monto=Decimal("5000.00"),
-                    metodo_pago="Transferencia Bancaria",
-                    numero_recibo="REC-00129"
-                )
-                db.add(pago)
-
-            # Bitacora
-            usuario_admin = usuarios_creados["admin@raices.com"]
-            bitacora = Bitacora(
-                id_usuario=usuario_admin.id,
-                id_tenant=tenant.id_tenant,
-                accion="Poblado inicial de base de datos con datos de demostracion"
-            )
-            db.add(bitacora)
-            db.commit()
-            print("[+] Visita, contrato, pago y bitacora de ejemplo registrados.")
-
-        # Guardamos estos valores ANTES de salir del bloque `with Session(...)`,
-        # porque una vez cerrada la sesion, el objeto `tenant` queda "detached"
-        # y ya no se pueden leer sus atributos sin relanzar una consulta.
-        tenant_nombre_final = tenant.nombre
-        tenant_slug_final = tenant.slug
+            for u in dataset.USUARIOS:
+                resumen_credenciales.append((tenant.nombre, u["rol"], u["correo"], u["password"]))
 
     print("\n" + "=" * 60)
-    print("[*] BASE DE DATOS POBLADA EXITOSAMENTE")
+    print("[*] BASE DE DATOS MULTI-TENANT POBLADA EXITOSAMENTE")
     print("=" * 60)
     print("\nCredenciales de prueba disponibles:")
-    print("+---------------------+-------------------------+---------------+-------------+")
-    print("| Rol                 | Correo                  | Contrasena    | CI          |")
-    print("+---------------------+-------------------------+---------------+-------------+")
-    print("| Administrador       | admin@raices.com        | Admin.123@    | 1234567     |")
-    print("| Agente Inmobiliario | agente@raices.com       | Password.123@ | 2000000     |")
-    print("| Propietario         | propietario@raices.com  | Password.123@ | 3000000     |")
-    print("| Cliente             | cliente@raices.com      | Password.123@ | 4000000     |")
-    print("+---------------------+-------------------------+---------------+-------------+")
-    print(f"Inmobiliaria (Tenant): {tenant_nombre_final} (slug: {tenant_slug_final})\n")
+    print(f"{'Tenant':<25}{'Rol':<15}{'Correo':<28}{'Contrasena'}")
+    print("-" * 90)
+    for tenant_nombre, rol, correo, password in resumen_credenciales:
+        print(f"{tenant_nombre:<25}{rol:<15}{correo:<28}{password}")
+    print()
 
 
 if __name__ == "__main__":
