@@ -1,6 +1,11 @@
 from database.database import SessionLocal
 from database import models
 from auth import get_password_hash
+import os
+
+seed_admin_password = os.getenv("SEED_ADMIN_PASSWORD")
+if not seed_admin_password:
+    raise RuntimeError("SEED_ADMIN_PASSWORD debe estar configurada para ejecutar la semilla.")
 
 db = SessionLocal()
 
@@ -36,7 +41,7 @@ try:
             correo="admin@raices.com",
             telefono="77712345",
             id_rol=1,
-            password_hash=get_password_hash("123")
+            password_hash=get_password_hash(seed_admin_password)
         )
         db.add(user)
         db.commit()

@@ -1,4 +1,5 @@
 import bcrypt
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -9,7 +10,9 @@ from database.database import get_db
 from database.models import Usuario
 
 # Configuración de Seguridad
-SECRET_KEY = "clavesecretaparaelproyectoraices" # En producción, usar variable de entorno
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY debe estar configurada antes de iniciar la aplicación.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

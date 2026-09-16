@@ -185,3 +185,15 @@ class Pago(Base):
     numero_recibo = Column(String(50))
     
     contrato = relationship("Contrato", back_populates="pagos")
+
+class ReporteGuardado(Base):
+    __tablename__ = "reporte_guardado"
+    id_reporte = Column(Integer, primary_key=True, index=True)
+    id_empresa = Column(Integer, ForeignKey("empresa.id_empresa", onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
+    ci_usuario = Column(String(20), ForeignKey("usuario.ci", onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
+    nombre = Column(String(150), nullable=False)
+    configuracion = Column(Text, nullable=False) # Guardaremos un JSON con la estructura del reporte
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+
+    empresa = relationship("Empresa")
+    usuario = relationship("Usuario")

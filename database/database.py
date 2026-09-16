@@ -1,8 +1,15 @@
+import os
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# TODO: Reemplazar "tu_contraseña" con la contraseña de tu PostgreSQL
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:12345@localhost/raices_db"
+load_dotenv()
+
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not SQLALCHEMY_DATABASE_URL:
+    raise RuntimeError("DATABASE_URL debe estar configurada antes de iniciar la aplicación.")
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

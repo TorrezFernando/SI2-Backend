@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta
+import os
 
 # Importaciones locales
 from database.database import engine, get_db
@@ -11,6 +12,16 @@ from jose import jwt, JWTError
 import schemas
 from logger import log_accion_segura, leer_bitacora_segura
 from fastapi import Request
+
+
+def get_default_admin_password() -> str:
+    password = os.getenv("DEFAULT_ADMIN_PASSWORD")
+    if not password:
+        raise HTTPException(
+            status_code=500,
+            detail="DEFAULT_ADMIN_PASSWORD no está configurada en el servidor."
+        )
+    return password
 
 app = FastAPI(title="Raíces - Inmobiliaria API", version="1.0.0")
 
@@ -272,6 +283,109 @@ def update_rol_permisos(id_rol: int, permisos_ids: List[int], current_user: mode
     return {"message": "Permisos actualizados exitosamente", "rol_id": id_rol}
 
 # ==========================================
+# ENDPOINTS DE EMPRESAS (SaaS)
+# ==========================================
+
+@app.post("/admin/empresas", response_model=schemas.EmpresaResponse)
+def create_empresa(data: schemas.EmpresaConAdminCreate, current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.id_rol != 1:
+        raise HTTPException(status_code=403, detail="Solo Super Admin")
+        
+    db_empresa = db.query(models.Empresa).filter(models.Empresa.nombre == data.nombre).first()
+    if db_empresa:
+        raise HTTPException(status_code=400, detail="La empresa ya existe")
+        
+    # Crear Empresa
+    new_empresa = models.Empresa(nombre=data.nombre, dominio=data.dominio, estado=data.estado)
+    db.add(new_empresa)
+    db.commit()
+    db.refresh(new_empresa)
+    
+    # Crear Admin de Empresa
+    hashed_password = get_password_hash(get_default_admin_password())
+    admin_user = models.Usuario(
+        ci=data.admin_ci,
+        id_empresa=new_empresa.id_empresa,
+        nombre=data.admin_nombre,
+        correo=data.admin_correo,
+        telefono=data.admin_telefono,
+        id_rol=2, # Admin de Empresa
+        password_hash=hashed_password
+    )
+    db.add(admin_user)
+    db.commit()
+    
+    return new_empresa
+
+@app.get("/admin/empresas", response_model=list[schemas.EmpresaResponse])
+def get_empresas(current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.id_rol != 1:
+        raise HTTPException(status_code=403, detail="Solo Super Admin")
+    return db.query(models.Empresa).all()
+
+@app.put("/admin/empresas/{id_empresa}/reset-admin-password")
+def reset_admin_password(id_empresa: int, current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.id_rol != 1:
+        raise HTTPException(status_code=403, detail="Solo Super Admin")
+        
+    admin = db.query(models.Usuario).filter(models.Usuario.id_empresa == id_empresa, models.Usuario.id_rol == 2).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Administrador de empresa no encontrado")
+        
+    admin.password_hash = get_password_hash(get_default_admin_password())
+    db.commit()
+    return {"message": "Contraseña restablecida exitosamente"}
+
+# ==========================================
+# ENDPOINTS DE GESTION DE USUARIOS
+# ==========================================
+
+@app.get("/gestion_usuarios/usuarios", response_model=list[schemas.UsuarioResponse])
+def get_usuarios(current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.id_rol == 1:
+        usuarios = db.query(models.Usuario).all()
+    else:
+        usuarios = db.query(models.Usuario).filter(models.Usuario.id_empresa == current_user.id_empresa).all()
+        
+    # Inject permissions dynamically
+    for user in usuarios:
+        user.permisos = [p.codigo for p in user.rol.permisos] if user.rol else []
+    return usuarios
+
+@app.get("/gestion_usuarios/roles", response_model=list[schemas.RolResponse])
+def get_roles_gestion(current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    """ Alias de /roles para la UI de gestión de usuarios """
+    return get_roles(current_user, db)
+
+@app.post("/gestion_usuarios/usuarios", response_model=schemas.UsuarioResponse)
+def create_usuario_gestion(user_data: schemas.UsuarioCreate, current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.id_rol not in [1, 2]:
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+        
+    db_user = db.query(models.Usuario).filter((models.Usuario.correo == user_data.correo) | (models.Usuario.ci == user_data.ci)).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="El correo o CI ya está registrado")
+        
+    # Asignar id_empresa del admin actual (o el provisto si es superadmin)
+    empresa_id = user_data.id_empresa if current_user.id_rol == 1 else current_user.id_empresa
+    
+    hashed_password = get_password_hash(user_data.password)
+    new_user = models.Usuario(
+        ci=user_data.ci,
+        id_empresa=empresa_id,
+        nombre=user_data.nombre,
+        correo=user_data.correo,
+        telefono=user_data.telefono,
+        id_rol=user_data.id_rol,
+        password_hash=hashed_password
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return new_user
+
+# ==========================================
 # ENDPOINTS DE PROPIEDADES (BÚSQUEDA / CATÁLOGO)
 # ==========================================
 
@@ -357,3 +471,581 @@ def get_catalogo_propiedades(
 
     propiedades = query.all()
     return propiedades
+
+# ==========================================
+# ENDPOINTS DE BACKUP Y RESTORE
+# ==========================================
+
+import subprocess
+import tempfile
+import os
+from fastapi import UploadFile, File as FastAPIFile
+from fastapi.responses import Response
+
+# Configuración de conexión (debe coincidir con database.py)
+DB_NAME = os.getenv("POSTGRES_DB", "raices_db")
+DB_USER = os.getenv("POSTGRES_USER", "postgres")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+# Ruta al directorio bin de PostgreSQL (ajustar si la versión cambia)
+PG_BIN_PATH = os.getenv("PG_BIN_PATH", r"C:\Program Files\PostgreSQL\18\bin")
+
+
+def get_postgres_password() -> str:
+    if not DB_PASSWORD:
+        raise HTTPException(
+            status_code=500,
+            detail="POSTGRES_PASSWORD no está configurada en el servidor."
+        )
+    return DB_PASSWORD
+
+@app.get("/admin/backup")
+def descargar_backup(current_user: models.Usuario = Depends(get_current_user)):
+    """Genera un backup de la base de datos PostgreSQL y lo devuelve como archivo .sql"""
+    if current_user.id_rol != 1:
+        raise HTTPException(status_code=403, detail="Solo Super Admin puede hacer backups")
+    
+    tmp_path = None
+    try:
+        # Crear archivo temporal para el dump
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".sql", prefix="backup_raices_")
+        tmp_path = tmp.name
+        tmp.close()
+        
+        env = os.environ.copy()
+        env["PGPASSWORD"] = get_postgres_password()
+        
+        pg_dump_exe = os.path.join(PG_BIN_PATH, "pg_dump.exe")
+        result = subprocess.run(
+            [pg_dump_exe, "-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-f", tmp_path, "--no-password"],
+            capture_output=True, text=True, env=env, timeout=60
+        )
+        
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Error al generar backup: {result.stderr}")
+        
+        from datetime import datetime
+        filename = f"backup_raices_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql"
+        
+        # Leer el contenido en memoria y devolver como Response directa
+        # Usar FileResponse en Windows con uvicorn puede causar cuelgues
+        with open(tmp_path, "rb") as f:
+            content = f.read()
+        
+        return Response(
+            content=content,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Timeout al generar el backup")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="pg_dump no encontrado. Verifique la instalación de PostgreSQL.")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
+@app.post("/admin/restore")
+async def restaurar_backup(
+    file: UploadFile = FastAPIFile(...),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Restaura la base de datos desde un archivo .sql subido"""
+    if current_user.id_rol != 1:
+        raise HTTPException(status_code=403, detail="Solo Super Admin puede restaurar backups")
+    
+    if not file.filename.endswith(".sql"):
+        raise HTTPException(status_code=400, detail="Solo se aceptan archivos .sql")
+    
+    # Guardar el archivo subido en un temporal
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".sql", prefix="restore_")
+    try:
+        content = await file.read()
+        tmp.write(content)
+        tmp.close()
+        
+        env = os.environ.copy()
+        env["PGPASSWORD"] = get_postgres_password()
+        
+        # Ejecutar psql para restaurar
+        psql_exe = os.path.join(PG_BIN_PATH, "psql.exe")
+        result = subprocess.run(
+            [psql_exe, "-h", DB_HOST, "-p", DB_PORT, "-U", DB_USER, "-d", DB_NAME, "-f", tmp.name, "--no-password"],
+            capture_output=True, text=True, env=env, timeout=120
+        )
+        
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Error al restaurar: {result.stderr[:500]}")
+        
+        return {"mensaje": "Base de datos restaurada exitosamente"}
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Timeout al restaurar la base de datos")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="psql no encontrado. Asegúrese de que PostgreSQL esté en el PATH del sistema.")
+    finally:
+        if os.path.exists(tmp.name):
+            os.unlink(tmp.name)
+
+# ==========================================
+# ENDPOINTS ADMIN DE PROPIEDADES (CU-19)
+# ==========================================
+
+@app.get("/modulo_inmuebles/propiedades", response_model=list[schemas.PropiedadAdminResponse])
+def get_propiedades_admin(
+    id_empresa: Optional[int] = None,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Lista propiedades para administración. SuperAdmin puede filtrar por empresa; Admin de Empresa solo ve las suyas."""
+    query = db.query(models.Propiedad)
+    if current_user.id_rol == 1:
+        # Super Admin: requiere seleccionar empresa
+        if id_empresa:
+            query = query.filter(models.Propiedad.id_empresa == id_empresa)
+        else:
+            return []  # Sin filtro de empresa, devuelve vacío para que seleccione
+    else:
+        query = query.filter(models.Propiedad.id_empresa == current_user.id_empresa)
+    return query.all()
+
+@app.post("/modulo_inmuebles/propiedades", response_model=schemas.PropiedadAdminResponse, status_code=201)
+def create_propiedad(
+    data: schemas.PropiedadCreate,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Crea una nueva propiedad. Solo Admin de Empresa (rol 2) puede crear."""
+    if current_user.id_rol not in [1, 2]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear propiedades")
+
+    # Determinar empresa
+    empresa_id = current_user.id_empresa if current_user.id_rol != 1 else None
+    if empresa_id is None:
+        raise HTTPException(status_code=400, detail="Super Admin debe operar a través del Admin de Empresa")
+
+    new_prop = models.Propiedad(
+        id_empresa=empresa_id,
+        id_propietario=data.id_propietario,
+        id_agente=data.id_agente,
+        titulo=data.titulo,
+        direccion=data.direccion,
+        precio=data.precio,
+        tipo_operacion=data.tipo_operacion,
+        estado="Disponible"
+    )
+    db.add(new_prop)
+    db.commit()
+    db.refresh(new_prop)
+    return new_prop
+
+@app.put("/modulo_inmuebles/propiedades/{id_propiedad}/estado")
+def update_propiedad_estado(
+    id_propiedad: int,
+    data: schemas.PropiedadEstadoUpdate,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Actualiza el estado de una propiedad."""
+    propiedad = db.query(models.Propiedad).filter(models.Propiedad.id_propiedad == id_propiedad).first()
+    if not propiedad:
+        raise HTTPException(status_code=404, detail="Propiedad no encontrada")
+    if current_user.id_rol not in [1, 2] and propiedad.id_empresa != current_user.id_empresa:
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+    estados_validos = ["Disponible", "Reservada", "Vendida", "Alquilada"]
+    if data.estado not in estados_validos:
+        raise HTTPException(status_code=400, detail=f"Estado inválido. Use: {estados_validos}")
+    propiedad.estado = data.estado
+    db.commit()
+    return {"message": "Estado actualizado", "estado": data.estado}
+
+@app.put("/modulo_inmuebles/propiedades/{id_propiedad}", response_model=schemas.PropiedadAdminResponse)
+def update_propiedad(
+    id_propiedad: int,
+    data: schemas.PropiedadCreate,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Modifica los datos de una propiedad."""
+    if current_user.id_rol not in [1, 2]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden modificar propiedades")
+    propiedad = db.query(models.Propiedad).filter(models.Propiedad.id_propiedad == id_propiedad).first()
+    if not propiedad:
+        raise HTTPException(status_code=404, detail="Propiedad no encontrada")
+    if current_user.id_rol != 1 and propiedad.id_empresa != current_user.id_empresa:
+        raise HTTPException(status_code=403, detail="No puede modificar propiedades de otra empresa")
+    propiedad.id_propietario = data.id_propietario
+    propiedad.id_agente = data.id_agente
+    propiedad.titulo = data.titulo
+    propiedad.direccion = data.direccion
+    propiedad.precio = data.precio
+    propiedad.tipo_operacion = data.tipo_operacion
+    db.commit()
+    db.refresh(propiedad)
+    return propiedad
+
+@app.delete("/modulo_inmuebles/propiedades/{id_propiedad}")
+def delete_propiedad(
+    id_propiedad: int,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Elimina una propiedad."""
+    if current_user.id_rol not in [1, 2]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar propiedades")
+    propiedad = db.query(models.Propiedad).filter(models.Propiedad.id_propiedad == id_propiedad).first()
+    if not propiedad:
+        raise HTTPException(status_code=404, detail="Propiedad no encontrada")
+    if current_user.id_rol != 1 and propiedad.id_empresa != current_user.id_empresa:
+        raise HTTPException(status_code=403, detail="No puede eliminar propiedades de otra empresa")
+    db.delete(propiedad)
+    db.commit()
+    return {"message": "Propiedad eliminada"}
+
+# ==========================================
+# ENDPOINTS ADMIN DE PROPIETARIOS
+# ==========================================
+
+@app.get("/modulo_inmuebles/propietarios", response_model=list[schemas.PropietarioResponse])
+def get_propietarios(
+    id_empresa: Optional[int] = None,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Lista propietarios de la empresa del usuario autenticado (o filtrado por empresa para SuperAdmin)."""
+    query = db.query(models.Propietario)
+    if current_user.id_rol == 1:
+        if id_empresa:
+            query = query.filter(models.Propietario.id_empresa == id_empresa)
+    else:
+        query = query.filter(models.Propietario.id_empresa == current_user.id_empresa)
+    propietarios_db = query.all()
+    resultado = []
+    for p in propietarios_db:
+        resultado.append({
+            "id_propietario": p.id_propietario,
+            "ci_usuario": p.ci_usuario,
+            "id_empresa": p.id_empresa,
+            "nombre": p.usuario.nombre if p.usuario else None,
+            "correo": p.usuario.correo if p.usuario else None,
+            "telefono": p.usuario.telefono if p.usuario else None,
+        })
+    return resultado
+
+@app.post("/modulo_inmuebles/propietarios", response_model=schemas.PropietarioResponse, status_code=201)
+def create_propietario(
+    data: schemas.PropietarioCreate,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Asigna rol de propietario a un usuario existente en la empresa."""
+    if current_user.id_rol not in [1, 2]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden registrar propietarios")
+    usuario = db.query(models.Usuario).filter(models.Usuario.ci == data.ci_usuario).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado con ese CI")
+    empresa_id = current_user.id_empresa if current_user.id_rol != 1 else usuario.id_empresa
+    if not empresa_id:
+        raise HTTPException(status_code=400, detail="El usuario no tiene empresa asignada")
+    # Verificar que no sea ya propietario
+    existente = db.query(models.Propietario).filter(models.Propietario.ci_usuario == data.ci_usuario).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Este usuario ya es propietario")
+    new_prop = models.Propietario(ci_usuario=data.ci_usuario, id_empresa=empresa_id)
+    db.add(new_prop)
+    db.commit()
+    db.refresh(new_prop)
+    return {
+        "id_propietario": new_prop.id_propietario,
+        "ci_usuario": new_prop.ci_usuario,
+        "id_empresa": new_prop.id_empresa,
+        "nombre": usuario.nombre,
+        "correo": usuario.correo,
+        "telefono": usuario.telefono,
+    }
+
+@app.put("/modulo_inmuebles/propietarios/{id_propietario}", response_model=schemas.PropietarioResponse)
+def update_propietario(
+    id_propietario: int,
+    data: schemas.PropietarioCreate,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Modifica el CI de usuario asociado a un propietario. Solo Admin de Empresa."""
+    if current_user.id_rol not in [1, 2]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden modificar propietarios")
+    propietario = db.query(models.Propietario).filter(models.Propietario.id_propietario == id_propietario).first()
+    if not propietario:
+        raise HTTPException(status_code=404, detail="Propietario no encontrado")
+    if current_user.id_rol != 1 and propietario.id_empresa != current_user.id_empresa:
+        raise HTTPException(status_code=403, detail="No puede modificar propietarios de otra empresa")
+    # Verificar que el nuevo CI existe
+    nuevo_usuario = db.query(models.Usuario).filter(models.Usuario.ci == data.ci_usuario).first()
+    if not nuevo_usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado con ese CI")
+    # Verificar que el nuevo CI no sea ya propietario (excepto el mismo)
+    existente = db.query(models.Propietario).filter(
+        models.Propietario.ci_usuario == data.ci_usuario,
+        models.Propietario.id_propietario != id_propietario
+    ).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Este usuario ya es propietario")
+    propietario.ci_usuario = data.ci_usuario
+    db.commit()
+    db.refresh(propietario)
+    return {
+        "id_propietario": propietario.id_propietario,
+        "ci_usuario": propietario.ci_usuario,
+        "id_empresa": propietario.id_empresa,
+        "nombre": nuevo_usuario.nombre,
+        "correo": nuevo_usuario.correo,
+        "telefono": nuevo_usuario.telefono,
+    }
+
+@app.delete("/modulo_inmuebles/propietarios/{id_propietario}")
+def delete_propietario(
+    id_propietario: int,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Elimina un propietario (no elimina el usuario base)."""
+    if current_user.id_rol not in [1, 2]:
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    propietario = db.query(models.Propietario).filter(models.Propietario.id_propietario == id_propietario).first()
+    if not propietario:
+        raise HTTPException(status_code=404, detail="Propietario no encontrado")
+    if current_user.id_rol != 1 and propietario.id_empresa != current_user.id_empresa:
+        raise HTTPException(status_code=403, detail="No puede eliminar propietarios de otra empresa")
+    db.delete(propietario)
+    db.commit()
+    return {"message": "Propietario eliminado"}
+
+# ==========================================
+# ENDPOINTS ADMIN DE AGENTES
+# ==========================================
+
+@app.get("/modulo_inmuebles/agentes", response_model=list[schemas.AgenteResponse])
+def get_agentes(
+    id_empresa: Optional[int] = None,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Lista agentes de la empresa del usuario autenticado."""
+    query = db.query(models.Agente)
+    if current_user.id_rol == 1:
+        if id_empresa:
+            query = query.filter(models.Agente.id_empresa == id_empresa)
+    else:
+        query = query.filter(models.Agente.id_empresa == current_user.id_empresa)
+    agentes_db = query.all()
+    resultado = []
+    for a in agentes_db:
+        resultado.append({
+            "id_agente": a.id_agente,
+            "ci_usuario": a.ci_usuario,
+            "id_empresa": a.id_empresa,
+            "nombre": a.usuario.nombre if a.usuario else None,
+            "correo": a.usuario.correo if a.usuario else None,
+        })
+    return resultado
+
+# Alias para compatibilidad con frontend
+@app.get("/modulo_inmuebles/propietarios_list", response_model=list[schemas.PropietarioResponse])
+def get_propietarios_list(
+    id_empresa: Optional[int] = None,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return get_propietarios(id_empresa, current_user, db)
+
+# ==========================================
+# ENDPOINTS REPORTES DINÁMICOS (PUNTO 5)
+# ==========================================
+from sqlalchemy import desc, asc
+
+@app.post("/reportes/generar")
+def generar_reporte_dinamico(
+    request: schemas.ReporteRequest,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Genera datos para un reporte dinámico basado en la configuración."""
+    entidad_map = {
+        'propiedades': models.Propiedad,
+        'usuarios': models.Usuario
+    }
+    
+    if request.entidad not in entidad_map:
+        raise HTTPException(status_code=400, detail="Entidad no soportada para reportes")
+        
+    modelo = entidad_map[request.entidad]
+    query = db.query(modelo)
+    
+    # Filtro multitenant
+    if request.entidad == 'propiedades':
+        if current_user.id_rol != 1:
+            query = query.filter(modelo.id_empresa == current_user.id_empresa)
+    elif request.entidad == 'usuarios':
+        if current_user.id_rol != 1:
+            query = query.filter(modelo.id_empresa == current_user.id_empresa)
+            
+    # Aplicar Filtros Dinámicos
+    for f in request.filtros:
+        if not hasattr(modelo, f.columna):
+            continue
+        attr = getattr(modelo, f.columna)
+        if f.operador == 'eq':
+            query = query.filter(attr == f.valor)
+        elif f.operador == 'gt':
+            query = query.filter(attr > f.valor)
+        elif f.operador == 'lt':
+            query = query.filter(attr < f.valor)
+        elif f.operador == 'gte':
+            query = query.filter(attr >= f.valor)
+        elif f.operador == 'lte':
+            query = query.filter(attr <= f.valor)
+        elif f.operador == 'like':
+            query = query.filter(attr.ilike(f"%{f.valor}%"))
+
+    # Ordenamiento
+    if request.orden and hasattr(modelo, request.orden.columna):
+        attr = getattr(modelo, request.orden.columna)
+        if request.orden.direccion == 'desc':
+            query = query.order_by(desc(attr))
+        else:
+            query = query.order_by(asc(attr))
+            
+    resultados = query.all()
+    
+    # Serializar sólo las columnas solicitadas
+    data = []
+    for row in resultados:
+        item = {}
+        for col in request.columnas:
+            if hasattr(row, col):
+                item[col] = getattr(row, col)
+        data.append(item)
+        
+    return {"data": data}
+
+@app.post("/reportes/guardados", response_model=schemas.ReporteGuardadoResponse)
+def guardar_reporte(
+    data: schemas.ReporteGuardadoCreate,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Guarda la configuración de un reporte para el usuario actual."""
+    # Buscar si existe la empresa para el admin general, sino asignamos null/error.
+    empresa_id = current_user.id_empresa
+    if current_user.id_rol == 1 and not empresa_id:
+        empresa_id = 1 # Fallback seguro
+        
+    nuevo_reporte = models.ReporteGuardado(
+        id_empresa=empresa_id,
+        ci_usuario=current_user.ci,
+        nombre=data.nombre,
+        configuracion=data.configuracion
+    )
+    db.add(nuevo_reporte)
+    db.commit()
+    db.refresh(nuevo_reporte)
+    return nuevo_reporte
+
+@app.get("/reportes/guardados", response_model=list[schemas.ReporteGuardadoResponse])
+def get_reportes_guardados(
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Obtiene los reportes guardados por el usuario."""
+    return db.query(models.ReporteGuardado).filter(models.ReporteGuardado.ci_usuario == current_user.ci).all()
+
+# ==========================================
+# ENDPOINTS BACKUP / RESTORE (PUNTO 6)
+# ==========================================
+import subprocess
+import os
+import time
+from fastapi.responses import FileResponse
+from fastapi import UploadFile, File
+
+# Reutiliza la configuración PostgreSQL declarada arriba.
+DB_PASS = DB_PASSWORD
+
+@app.get("/admin/backup")
+def generar_backup(current_user: models.Usuario = Depends(get_current_user)):
+    if current_user.id_rol != 1:
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+        
+    filename = f"backup_raices_{int(time.time())}.sql"
+    filepath = os.path.join(os.getcwd(), filename)
+    
+    env = os.environ.copy()
+    env["PGPASSWORD"] = get_postgres_password()
+    
+    # Exporta en formato de texto plano con comandos DROP para limpiar antes de restaurar
+    command = [
+        "pg_dump",
+        "-h", DB_HOST,
+        "-p", "5432",
+        "-U", DB_USER,
+        "-w", # Nunca pedir contraseña interactivamente
+        "-d", DB_NAME,
+        "-F", "p", 
+        "-f", filepath,
+        "--clean", 
+        "--if-exists"
+    ]
+    
+    try:
+        subprocess.run(command, env=env, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=500, detail=f"Error al ejecutar pg_dump: {e.stderr}")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="La herramienta pg_dump no está instalada o no está en el PATH del sistema.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado al generar backup: {str(e)}")
+        
+    return FileResponse(path=filepath, filename=filename, media_type='application/sql')
+
+@app.post("/admin/restore")
+async def restaurar_backup(
+    file: UploadFile = File(...),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    if current_user.id_rol != 1:
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+        
+    if not file.filename.endswith('.sql'):
+        raise HTTPException(status_code=400, detail="Formato inválido. Debe ser un archivo .sql")
+        
+    temp_path = os.path.join(os.getcwd(), f"temp_restore_{int(time.time())}.sql")
+    with open(temp_path, "wb") as buffer:
+        buffer.write(await file.read())
+        
+    env = os.environ.copy()
+    env["PGPASSWORD"] = get_postgres_password()
+    
+    command = [
+        "psql",
+        "-h", DB_HOST,
+        "-p", "5432",
+        "-U", DB_USER,
+        "-w",
+        "-d", DB_NAME,
+        "-f", temp_path
+    ]
+    
+    try:
+        result = subprocess.run(command, env=env, capture_output=True, text=True)
+        if result.returncode != 0 and "FATAL" in result.stderr:
+             raise Exception(result.stderr)
+    except Exception as e:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise HTTPException(status_code=500, detail=f"Error al restaurar backup: {str(e)}")
+        
+    if os.path.exists(temp_path):
+        os.remove(temp_path)
+        
+    return {"mensaje": "Base de datos restaurada correctamente"}

@@ -3,10 +3,11 @@ from datetime import datetime
 from cryptography.fernet import Fernet
 import os
 
-# En producción, esto DEBE venir de una variable de entorno. 
-# Para este proyecto universitario, la dejaremos quemada aquí por simplicidad.
-# Llave generada con: Fernet.generate_key()
-DEV_SECRET_KEY = b'xLgB9wYk4uC8m1J3p5d9R8fQ4z2n3pT5zM8xLgB9wYk=' 
+_fernet_key = os.getenv("BITACORA_FERNET_KEY")
+if not _fernet_key:
+    raise RuntimeError("BITACORA_FERNET_KEY debe estar configurada antes de iniciar la aplicación.")
+
+DEV_SECRET_KEY = _fernet_key.encode("utf-8")
 fernet = Fernet(DEV_SECRET_KEY)
 LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "bitacora_segura.log")
 

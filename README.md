@@ -10,17 +10,9 @@ Actualmente se ha completado el **Sprint 0** (Autenticación y Seguridad). El si
 * Gestión y visualización de roles (CU-05)
 * Cambio y recuperación de contraseña (CU-03, CU-04)
 
-## Credenciales de Acceso (Usuarios de Prueba)
-Se han generado cuentas de prueba con los diferentes roles activos en el sistema para facilitar la validación de las vistas y permisos.
+## Configuración local
 
-Todas las contraseñas cumplen con las políticas de seguridad (mínimo 8 caracteres, mayúsculas, números y símbolos).
-
-| Rol | Correo / Usuario | Contraseña |
-| --- | --- | --- |
-| **Administrador** | `admin@raices.com` | `Admin.123@` |
-| **Agente Inmobiliario** | `agente@raices.com` | `Password.123@` |
-| **Propietario** | `propietario@raices.com` | `Password.123@` |
-| **Cliente** | `cliente@raices.com` | `Password.123@` |
+Antes de iniciar la API, copia `.env.example` a `.env` y reemplaza todos los valores de ejemplo con secretos locales. No se versionan credenciales ni cuentas de prueba.
 
 ## 🛠 Tecnologías Utilizadas
 * **Backend:** FastAPI (Python), SQLAlchemy, PostgreSQL
