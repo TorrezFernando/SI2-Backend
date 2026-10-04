@@ -14,14 +14,21 @@ if env_path.exists():
                 key, val = line.split("=", 1)
                 os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
 
-# Configuración de conexión a PostgreSQL
-# Puede definirse mediante la variable de entorno DATABASE_URL o en un archivo .env
+# Leer DATABASE_URL, por defecto intentará usar SQLite si no hay .env para no romper tu entorno local
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:tu_contraseña@localhost/raices_db"
+    "sqlite:///./raices_db.db"
 )
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# Si es SQLite, necesitamos check_same_thread en False (para FastAPI).
+# Si es PostgreSQL (en la nube), no lo necesitamos.
+connect_args = {}
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args=connect_args
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
