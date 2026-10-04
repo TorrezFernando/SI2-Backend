@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
 # Esquemas para Token
 class Token(BaseModel):
@@ -13,7 +13,7 @@ import re
 # Esquemas para Usuario
 class UsuarioBase(BaseModel):
     ci: str
-    id_empresa: Optional[int] = None
+    id_tenant: Optional[int] = None
     nombre: str
     correo: EmailStr
     telefono: Optional[str] = None
@@ -35,7 +35,7 @@ class UsuarioResponse(UsuarioBase):
 # Esquemas para Rol
 class RolBase(BaseModel):
     nombre: str
-    id_empresa: Optional[int] = None
+    id_tenant: Optional[int] = None
 
 class RolCreate(RolBase):
     pass
@@ -65,8 +65,10 @@ class PermisoResponse(PermisoBase):
 # Esquemas para Empresa
 class EmpresaBase(BaseModel):
     nombre: str
-    dominio: Optional[str] = None
-    estado: Optional[str] = "Activa"
+    slug: str
+    plan: str = "basico"
+    max_propiedades: int = 10
+    estado: Optional[bool] = True
 
 class EmpresaCreate(EmpresaBase):
     pass
@@ -78,8 +80,9 @@ class EmpresaConAdminCreate(EmpresaBase):
     admin_telefono: Optional[str] = None
 
 class EmpresaResponse(EmpresaBase):
-    id_empresa: int
+    id_tenant: int
     fecha_registro: Optional[datetime] = None
+    fecha_vencimiento_pago: Optional[date] = None
 
     class Config:
         from_attributes = True
@@ -102,8 +105,9 @@ class CaracteristicaResponse(BaseModel):
 
 class PropiedadCatalogoResponse(BaseModel):
     id_propiedad: int
-    id_empresa: int
+    id_tenant: int
     titulo: str
+    descripcion: Optional[str] = None
     direccion: str
     precio: float
     tipo_operacion: str
@@ -122,19 +126,22 @@ class PropiedadCreate(BaseModel):
     id_propietario: int
     id_agente: int
     titulo: str
+    descripcion: Optional[str] = None
     direccion: str
     precio: float
     tipo_operacion: str  # 'Venta', 'Alquiler', 'Anticretico'
+    imagenes: list[str] = []
 
 class PropiedadEstadoUpdate(BaseModel):
     estado: str  # 'Disponible', 'Reservada', 'Vendida', 'Alquilada'
 
 class PropiedadAdminResponse(BaseModel):
     id_propiedad: int
-    id_empresa: int
+    id_tenant: int
     id_propietario: int
     id_agente: int
     titulo: str
+    descripcion: Optional[str] = None
     direccion: str
     precio: float
     tipo_operacion: str
@@ -151,7 +158,7 @@ class PropietarioCreate(BaseModel):
 class PropietarioResponse(BaseModel):
     id_propietario: int
     ci_usuario: str
-    id_empresa: int
+    id_tenant: int
     nombre: Optional[str] = None
     correo: Optional[str] = None
     telefono: Optional[str] = None
@@ -162,7 +169,7 @@ class PropietarioResponse(BaseModel):
 class AgenteResponse(BaseModel):
     id_agente: int
     ci_usuario: str
-    id_empresa: int
+    id_tenant: int
     nombre: Optional[str] = None
     correo: Optional[str] = None
 

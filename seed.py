@@ -11,14 +11,14 @@ db = SessionLocal()
 
 try:
     # 1. Crear Empresas SaaS
-    empresa1 = db.query(models.Empresa).filter(models.Empresa.id_empresa == 1).first()
+    empresa1 = db.query(models.Tenant).filter(models.Tenant.id_tenant == 1).first()
     if not empresa1:
-        empresa1 = models.Empresa(id_empresa=1, nombre="Raíces Inmobiliaria", dominio="raices.com")
+        empresa1 = models.Tenant(id_tenant=1, nombre="Raíces Inmobiliaria", slug="raices", plan="pro")
         db.add(empresa1)
         
-    empresa2 = db.query(models.Empresa).filter(models.Empresa.id_empresa == 2).first()
+    empresa2 = db.query(models.Tenant).filter(models.Tenant.id_tenant == 2).first()
     if not empresa2:
-        empresa2 = models.Empresa(id_empresa=2, nombre="Horizonte Bienes Raíces", dominio="horizonte.com")
+        empresa2 = models.Tenant(id_tenant=2, nombre="Horizonte Bienes Raíces", slug="horizonte", plan="basico")
         db.add(empresa2)
     db.commit()
 
@@ -36,7 +36,7 @@ try:
     if not user:
         user = models.Usuario(
             ci="1234567",
-            id_empresa=1,
+            id_tenant=1,
             nombre="Admin Raices",
             correo="admin@raices.com",
             telefono="77712345",

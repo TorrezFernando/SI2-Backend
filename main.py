@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -12,6 +13,7 @@ from jose import jwt, JWTError
 import schemas
 from logger import log_accion_segura, leer_bitacora_segura
 from fastapi import Request
+from ws_manager import manager
 
 
 def get_default_admin_password() -> str:
@@ -23,7 +25,12 @@ def get_default_admin_password() -> str:
         )
     return password
 
+import ia_router
+
 app = FastAPI(title="Raíces - Inmobiliaria API", version="1.0.0")
+
+app.include_router(ia_router.router)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # CORS setup for Angular frontend
 app.add_middleware(
@@ -89,7 +96,7 @@ def register_user(user: schemas.UsuarioCreate, db: Session = Depends(get_db)):
     hashed_password = get_password_hash(user.password)
     new_user = models.Usuario(
         ci=user.ci,
-        id_empresa=user.id_empresa,
+        id_tenant=user.id_tenant,
         nombre=user.nombre,
         correo=user.correo,
         telefono=user.telefono,
@@ -115,7 +122,7 @@ def login(user_credentials: schemas.UsuarioLogin, db: Session = Depends(get_db))
     # Generar Token JWT
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.correo, "rol": user.id_rol, "id_empresa": user.id_empresa}, expires_delta=access_token_expires
+        data={"sub": user.correo, "rol": user.id_rol, "id_tenant": user.id_tenant}, expires_delta=access_token_expires
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
@@ -143,7 +150,7 @@ def get_user_profile(current_user: models.Usuario = Depends(get_current_user), d
     # Hacemos una copia para inyectar los permisos sin fallar el modelo de sqlalchemy
     user_dict = {
         "ci": current_user.ci,
-        "id_empresa": current_user.id_empresa,
+        "id_tenant": current_user.id_tenant,
         "nombre": current_user.nombre,
         "correo": current_user.correo,
         "telefono": current_user.telefono,
@@ -184,15 +191,15 @@ def get_roles(current_user: models.Usuario = Depends(get_current_user), db: Sess
     if current_user.id_rol == 1:
         roles_db = db.query(models.Rol).all()
     else:
-        # Solo roles de su empresa o roles globales (id_empresa is null)
-        roles_db = db.query(models.Rol).filter((models.Rol.id_empresa == current_user.id_empresa) | (models.Rol.id_empresa == None)).all()
+        # Solo roles de su empresa o roles globales (id_tenant is null)
+        roles_db = db.query(models.Rol).filter((models.Rol.id_tenant == current_user.id_tenant) | (models.Rol.id_tenant == None)).all()
         
     resultado = []
     for r in roles_db:
         resultado.append({
             "id_rol": r.id_rol,
             "nombre": r.nombre,
-            "id_empresa": r.id_empresa,
+            "id_tenant": r.id_tenant,
             "permisos": [p.id_permiso for p in r.permisos]
         })
     return resultado
@@ -208,9 +215,9 @@ def create_rol(rol: schemas.RolCreate, current_user: models.Usuario = Depends(ge
         raise HTTPException(status_code=400, detail="Este rol ya existe")
     
     # Si es SuperAdmin puede crear rol global, de lo contrario se asigna a su empresa
-    empresa_id = None if current_user.id_rol == 1 else current_user.id_empresa
+    empresa_id = None if current_user.id_rol == 1 else current_user.id_tenant
     
-    new_rol = models.Rol(nombre=rol.nombre, id_empresa=empresa_id)
+    new_rol = models.Rol(nombre=rol.nombre, id_tenant=empresa_id)
     db.add(new_rol)
     db.commit()
     db.refresh(new_rol)
@@ -270,7 +277,7 @@ def update_rol_permisos(id_rol: int, permisos_ids: List[int], current_user: mode
         raise HTTPException(status_code=404, detail="Rol no encontrado")
         
     # Validar que no está modificando un rol de otra empresa
-    if current_user.id_rol != 1 and rol.id_empresa != current_user.id_empresa:
+    if current_user.id_rol != 1 and rol.id_tenant != current_user.id_tenant:
         raise HTTPException(status_code=403, detail="No puede modificar roles de otra empresa")
         
     # Limpiar y asignar nuevos permisos
@@ -291,12 +298,12 @@ def create_empresa(data: schemas.EmpresaConAdminCreate, current_user: models.Usu
     if current_user.id_rol != 1:
         raise HTTPException(status_code=403, detail="Solo Super Admin")
         
-    db_empresa = db.query(models.Empresa).filter(models.Empresa.nombre == data.nombre).first()
+    db_empresa = db.query(models.Tenant).filter(models.Tenant.nombre == data.nombre).first()
     if db_empresa:
         raise HTTPException(status_code=400, detail="La empresa ya existe")
         
     # Crear Empresa
-    new_empresa = models.Empresa(nombre=data.nombre, dominio=data.dominio, estado=data.estado)
+    new_empresa = models.Tenant(nombre=data.nombre, dominio=data.dominio, estado=data.estado)
     db.add(new_empresa)
     db.commit()
     db.refresh(new_empresa)
@@ -305,7 +312,7 @@ def create_empresa(data: schemas.EmpresaConAdminCreate, current_user: models.Usu
     hashed_password = get_password_hash(get_default_admin_password())
     admin_user = models.Usuario(
         ci=data.admin_ci,
-        id_empresa=new_empresa.id_empresa,
+        id_tenant=new_empresa.id_tenant,
         nombre=data.admin_nombre,
         correo=data.admin_correo,
         telefono=data.admin_telefono,
@@ -321,14 +328,14 @@ def create_empresa(data: schemas.EmpresaConAdminCreate, current_user: models.Usu
 def get_empresas(current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     if current_user.id_rol != 1:
         raise HTTPException(status_code=403, detail="Solo Super Admin")
-    return db.query(models.Empresa).all()
+    return db.query(models.Tenant).all()
 
-@app.put("/admin/empresas/{id_empresa}/reset-admin-password")
-def reset_admin_password(id_empresa: int, current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+@app.put("/admin/empresas/{id_tenant}/reset-admin-password")
+def reset_admin_password(id_tenant: int, current_user: models.Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     if current_user.id_rol != 1:
         raise HTTPException(status_code=403, detail="Solo Super Admin")
         
-    admin = db.query(models.Usuario).filter(models.Usuario.id_empresa == id_empresa, models.Usuario.id_rol == 2).first()
+    admin = db.query(models.Usuario).filter(models.Usuario.id_tenant == id_tenant, models.Usuario.id_rol == 2).first()
     if not admin:
         raise HTTPException(status_code=404, detail="Administrador de empresa no encontrado")
         
@@ -345,7 +352,7 @@ def get_usuarios(current_user: models.Usuario = Depends(get_current_user), db: S
     if current_user.id_rol == 1:
         usuarios = db.query(models.Usuario).all()
     else:
-        usuarios = db.query(models.Usuario).filter(models.Usuario.id_empresa == current_user.id_empresa).all()
+        usuarios = db.query(models.Usuario).filter(models.Usuario.id_tenant == current_user.id_tenant).all()
         
     # Inject permissions dynamically
     for user in usuarios:
@@ -366,13 +373,13 @@ def create_usuario_gestion(user_data: schemas.UsuarioCreate, current_user: model
     if db_user:
         raise HTTPException(status_code=400, detail="El correo o CI ya está registrado")
         
-    # Asignar id_empresa del admin actual (o el provisto si es superadmin)
-    empresa_id = user_data.id_empresa if current_user.id_rol == 1 else current_user.id_empresa
+    # Asignar id_tenant del admin actual (o el provisto si es superadmin)
+    empresa_id = user_data.id_tenant if current_user.id_rol == 1 else current_user.id_tenant
     
     hashed_password = get_password_hash(user_data.password)
     new_user = models.Usuario(
         ci=user_data.ci,
-        id_empresa=empresa_id,
+        id_tenant=empresa_id,
         nombre=user_data.nombre,
         correo=user_data.correo,
         telefono=user_data.telefono,
@@ -416,7 +423,7 @@ def get_catalogo_propiedades(
     query = db.query(models.Propiedad).filter(models.Propiedad.estado == 'Disponible')
     
     if x_tenant_id is not None:
-        query = query.filter(models.Propiedad.id_empresa == x_tenant_id)
+        query = query.filter(models.Propiedad.id_tenant == x_tenant_id)
     
     if tipo_operacion:
         query = query.filter(models.Propiedad.tipo_operacion == tipo_operacion)
@@ -594,7 +601,7 @@ async def restaurar_backup(
 
 @app.get("/modulo_inmuebles/propiedades", response_model=list[schemas.PropiedadAdminResponse])
 def get_propiedades_admin(
-    id_empresa: Optional[int] = None,
+    id_tenant: Optional[int] = None,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -602,13 +609,28 @@ def get_propiedades_admin(
     query = db.query(models.Propiedad)
     if current_user.id_rol == 1:
         # Super Admin: requiere seleccionar empresa
-        if id_empresa:
-            query = query.filter(models.Propiedad.id_empresa == id_empresa)
+        if id_tenant:
+            query = query.filter(models.Propiedad.id_tenant == id_tenant)
         else:
             return []  # Sin filtro de empresa, devuelve vacío para que seleccione
     else:
-        query = query.filter(models.Propiedad.id_empresa == current_user.id_empresa)
+        query = query.filter(models.Propiedad.id_tenant == current_user.id_tenant)
     return query.all()
+
+import uuid
+
+@app.post("/upload")
+async def upload_image(file: UploadFile = File(...)):
+    try:
+        # Save file to uploads folder
+        ext = file.filename.split('.')[-1]
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join("uploads", filename)
+        with open(filepath, "wb") as f:
+            f.write(await file.read())
+        return {"url": f"http://localhost:8000/uploads/{filename}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/modulo_inmuebles/propiedades", response_model=schemas.PropiedadAdminResponse, status_code=201)
 def create_propiedad(
@@ -621,15 +643,16 @@ def create_propiedad(
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear propiedades")
 
     # Determinar empresa
-    empresa_id = current_user.id_empresa if current_user.id_rol != 1 else None
+    empresa_id = current_user.id_tenant if current_user.id_rol != 1 else None
     if empresa_id is None:
         raise HTTPException(status_code=400, detail="Super Admin debe operar a través del Admin de Empresa")
 
     new_prop = models.Propiedad(
-        id_empresa=empresa_id,
+        id_tenant=empresa_id,
         id_propietario=data.id_propietario,
         id_agente=data.id_agente,
         titulo=data.titulo,
+        descripcion=data.descripcion,
         direccion=data.direccion,
         precio=data.precio,
         tipo_operacion=data.tipo_operacion,
@@ -638,12 +661,24 @@ def create_propiedad(
     db.add(new_prop)
     db.commit()
     db.refresh(new_prop)
+
+    # Add images if provided
+    if data.imagenes:
+        for img_url in data.imagenes:
+            img_url = img_url.strip()
+            if img_url:
+                new_img = models.Imagen(id_propiedad=new_prop.id_propiedad, url=img_url)
+                db.add(new_img)
+        db.commit()
+        db.refresh(new_prop)
+    db.refresh(new_prop)
     return new_prop
 
 @app.put("/modulo_inmuebles/propiedades/{id_propiedad}/estado")
 def update_propiedad_estado(
     id_propiedad: int,
     data: schemas.PropiedadEstadoUpdate,
+    background_tasks: BackgroundTasks,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -651,14 +686,36 @@ def update_propiedad_estado(
     propiedad = db.query(models.Propiedad).filter(models.Propiedad.id_propiedad == id_propiedad).first()
     if not propiedad:
         raise HTTPException(status_code=404, detail="Propiedad no encontrada")
-    if current_user.id_rol not in [1, 2] and propiedad.id_empresa != current_user.id_empresa:
+    if current_user.id_rol not in [1, 2] and propiedad.id_tenant != current_user.id_tenant:
         raise HTTPException(status_code=403, detail="Permiso denegado")
     estados_validos = ["Disponible", "Reservada", "Vendida", "Alquilada"]
     if data.estado not in estados_validos:
         raise HTTPException(status_code=400, detail=f"Estado inválido. Use: {estados_validos}")
     propiedad.estado = data.estado
     db.commit()
+    db.refresh(propiedad)
+    
+    # Broadcast to all websocket clients
+    background_tasks.add_task(
+        manager.broadcast, 
+        {"event": "estado_updated", "id_propiedad": id_propiedad, "nuevo_estado": data.estado, "id_tenant": propiedad.id_tenant}
+    )
+    
     return {"message": "Estado actualizado", "estado": data.estado}
+
+# ==========================================
+# WEBSOCKETS (Tiempo Real)
+# ==========================================
+
+@app.websocket("/ws/propiedades")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Echo if needed, otherwise ignore
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 @app.put("/modulo_inmuebles/propiedades/{id_propiedad}", response_model=schemas.PropiedadAdminResponse)
 def update_propiedad(
@@ -673,11 +730,13 @@ def update_propiedad(
     propiedad = db.query(models.Propiedad).filter(models.Propiedad.id_propiedad == id_propiedad).first()
     if not propiedad:
         raise HTTPException(status_code=404, detail="Propiedad no encontrada")
-    if current_user.id_rol != 1 and propiedad.id_empresa != current_user.id_empresa:
+    if current_user.id_rol != 1 and propiedad.id_tenant != current_user.id_tenant:
         raise HTTPException(status_code=403, detail="No puede modificar propiedades de otra empresa")
     propiedad.id_propietario = data.id_propietario
     propiedad.id_agente = data.id_agente
     propiedad.titulo = data.titulo
+    if data.descripcion is not None:
+        propiedad.descripcion = data.descripcion
     propiedad.direccion = data.direccion
     propiedad.precio = data.precio
     propiedad.tipo_operacion = data.tipo_operacion
@@ -697,7 +756,7 @@ def delete_propiedad(
     propiedad = db.query(models.Propiedad).filter(models.Propiedad.id_propiedad == id_propiedad).first()
     if not propiedad:
         raise HTTPException(status_code=404, detail="Propiedad no encontrada")
-    if current_user.id_rol != 1 and propiedad.id_empresa != current_user.id_empresa:
+    if current_user.id_rol != 1 and propiedad.id_tenant != current_user.id_tenant:
         raise HTTPException(status_code=403, detail="No puede eliminar propiedades de otra empresa")
     db.delete(propiedad)
     db.commit()
@@ -709,24 +768,24 @@ def delete_propiedad(
 
 @app.get("/modulo_inmuebles/propietarios", response_model=list[schemas.PropietarioResponse])
 def get_propietarios(
-    id_empresa: Optional[int] = None,
+    id_tenant: Optional[int] = None,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Lista propietarios de la empresa del usuario autenticado (o filtrado por empresa para SuperAdmin)."""
     query = db.query(models.Propietario)
     if current_user.id_rol == 1:
-        if id_empresa:
-            query = query.filter(models.Propietario.id_empresa == id_empresa)
+        if id_tenant:
+            query = query.filter(models.Propietario.id_tenant == id_tenant)
     else:
-        query = query.filter(models.Propietario.id_empresa == current_user.id_empresa)
+        query = query.filter(models.Propietario.id_tenant == current_user.id_tenant)
     propietarios_db = query.all()
     resultado = []
     for p in propietarios_db:
         resultado.append({
             "id_propietario": p.id_propietario,
             "ci_usuario": p.ci_usuario,
-            "id_empresa": p.id_empresa,
+            "id_tenant": p.id_tenant,
             "nombre": p.usuario.nombre if p.usuario else None,
             "correo": p.usuario.correo if p.usuario else None,
             "telefono": p.usuario.telefono if p.usuario else None,
@@ -745,21 +804,21 @@ def create_propietario(
     usuario = db.query(models.Usuario).filter(models.Usuario.ci == data.ci_usuario).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado con ese CI")
-    empresa_id = current_user.id_empresa if current_user.id_rol != 1 else usuario.id_empresa
+    empresa_id = current_user.id_tenant if current_user.id_rol != 1 else usuario.id_tenant
     if not empresa_id:
         raise HTTPException(status_code=400, detail="El usuario no tiene empresa asignada")
     # Verificar que no sea ya propietario
     existente = db.query(models.Propietario).filter(models.Propietario.ci_usuario == data.ci_usuario).first()
     if existente:
         raise HTTPException(status_code=400, detail="Este usuario ya es propietario")
-    new_prop = models.Propietario(ci_usuario=data.ci_usuario, id_empresa=empresa_id)
+    new_prop = models.Propietario(ci_usuario=data.ci_usuario, id_tenant=empresa_id)
     db.add(new_prop)
     db.commit()
     db.refresh(new_prop)
     return {
         "id_propietario": new_prop.id_propietario,
         "ci_usuario": new_prop.ci_usuario,
-        "id_empresa": new_prop.id_empresa,
+        "id_tenant": new_prop.id_tenant,
         "nombre": usuario.nombre,
         "correo": usuario.correo,
         "telefono": usuario.telefono,
@@ -778,7 +837,7 @@ def update_propietario(
     propietario = db.query(models.Propietario).filter(models.Propietario.id_propietario == id_propietario).first()
     if not propietario:
         raise HTTPException(status_code=404, detail="Propietario no encontrado")
-    if current_user.id_rol != 1 and propietario.id_empresa != current_user.id_empresa:
+    if current_user.id_rol != 1 and propietario.id_tenant != current_user.id_tenant:
         raise HTTPException(status_code=403, detail="No puede modificar propietarios de otra empresa")
     # Verificar que el nuevo CI existe
     nuevo_usuario = db.query(models.Usuario).filter(models.Usuario.ci == data.ci_usuario).first()
@@ -797,7 +856,7 @@ def update_propietario(
     return {
         "id_propietario": propietario.id_propietario,
         "ci_usuario": propietario.ci_usuario,
-        "id_empresa": propietario.id_empresa,
+        "id_tenant": propietario.id_tenant,
         "nombre": nuevo_usuario.nombre,
         "correo": nuevo_usuario.correo,
         "telefono": nuevo_usuario.telefono,
@@ -815,7 +874,7 @@ def delete_propietario(
     propietario = db.query(models.Propietario).filter(models.Propietario.id_propietario == id_propietario).first()
     if not propietario:
         raise HTTPException(status_code=404, detail="Propietario no encontrado")
-    if current_user.id_rol != 1 and propietario.id_empresa != current_user.id_empresa:
+    if current_user.id_rol != 1 and propietario.id_tenant != current_user.id_tenant:
         raise HTTPException(status_code=403, detail="No puede eliminar propietarios de otra empresa")
     db.delete(propietario)
     db.commit()
@@ -827,24 +886,24 @@ def delete_propietario(
 
 @app.get("/modulo_inmuebles/agentes", response_model=list[schemas.AgenteResponse])
 def get_agentes(
-    id_empresa: Optional[int] = None,
+    id_tenant: Optional[int] = None,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Lista agentes de la empresa del usuario autenticado."""
     query = db.query(models.Agente)
     if current_user.id_rol == 1:
-        if id_empresa:
-            query = query.filter(models.Agente.id_empresa == id_empresa)
+        if id_tenant:
+            query = query.filter(models.Agente.id_tenant == id_tenant)
     else:
-        query = query.filter(models.Agente.id_empresa == current_user.id_empresa)
+        query = query.filter(models.Agente.id_tenant == current_user.id_tenant)
     agentes_db = query.all()
     resultado = []
     for a in agentes_db:
         resultado.append({
             "id_agente": a.id_agente,
             "ci_usuario": a.ci_usuario,
-            "id_empresa": a.id_empresa,
+            "id_tenant": a.id_tenant,
             "nombre": a.usuario.nombre if a.usuario else None,
             "correo": a.usuario.correo if a.usuario else None,
         })
@@ -853,11 +912,11 @@ def get_agentes(
 # Alias para compatibilidad con frontend
 @app.get("/modulo_inmuebles/propietarios_list", response_model=list[schemas.PropietarioResponse])
 def get_propietarios_list(
-    id_empresa: Optional[int] = None,
+    id_tenant: Optional[int] = None,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return get_propietarios(id_empresa, current_user, db)
+    return get_propietarios(id_tenant, current_user, db)
 
 # ==========================================
 # ENDPOINTS REPORTES DINÁMICOS (PUNTO 5)
@@ -885,10 +944,10 @@ def generar_reporte_dinamico(
     # Filtro multitenant
     if request.entidad == 'propiedades':
         if current_user.id_rol != 1:
-            query = query.filter(modelo.id_empresa == current_user.id_empresa)
+            query = query.filter(modelo.id_tenant == current_user.id_tenant)
     elif request.entidad == 'usuarios':
         if current_user.id_rol != 1:
-            query = query.filter(modelo.id_empresa == current_user.id_empresa)
+            query = query.filter(modelo.id_tenant == current_user.id_tenant)
             
     # Aplicar Filtros Dinámicos
     for f in request.filtros:
@@ -937,12 +996,12 @@ def guardar_reporte(
 ):
     """Guarda la configuración de un reporte para el usuario actual."""
     # Buscar si existe la empresa para el admin general, sino asignamos null/error.
-    empresa_id = current_user.id_empresa
+    empresa_id = current_user.id_tenant
     if current_user.id_rol == 1 and not empresa_id:
         empresa_id = 1 # Fallback seguro
         
     nuevo_reporte = models.ReporteGuardado(
-        id_empresa=empresa_id,
+        id_tenant=empresa_id,
         ci_usuario=current_user.ci,
         nombre=data.nombre,
         configuracion=data.configuracion
