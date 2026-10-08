@@ -32,7 +32,11 @@ def leer_bitacora_segura(dev_key: str):
     """
     Lee el archivo encriptado, desencripta línea por línea y devuelve la lista de registros.
     """
-    if dev_key != DEV_SECRET_KEY.decode('utf-8'):
+    dev_key = dev_key.strip()
+    print("=== DEBUG LLAVES ===")
+    print(f"RECIBIDA: {repr(dev_key)}")
+    print(f"ESPERADA: {repr(DEV_SECRET_KEY.decode('utf-8').strip())}")
+    if dev_key != DEV_SECRET_KEY.decode('utf-8').strip():
         raise ValueError("Llave de desarrollador inválida")
         
     if not os.path.exists(LOG_FILE_PATH):

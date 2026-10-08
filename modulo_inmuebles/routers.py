@@ -23,11 +23,15 @@ def get_catalogo(estado: str = "Disponible", db: Session = Depends(get_db)):
 
 @router.get("/propiedades", response_model=List[schemas.PropiedadResponse])
 def get_propiedades(
+    id_tenant: int = None,
     db: Session = Depends(get_db), 
     current_user: Usuario = Depends(get_current_tenant_user)
 ):
     """Obtiene SOLO las propiedades del Tenant del usuario autenticado"""
-    propiedades = db.query(Propiedad).filter(Propiedad.id_tenant == current_user.id_tenant).all()
+    if current_user.id_rol == 1 and id_tenant:
+        propiedades = db.query(Propiedad).filter(Propiedad.id_tenant == id_tenant).all()
+    else:
+        propiedades = db.query(Propiedad).filter(Propiedad.id_tenant == current_user.id_tenant).all()
     return propiedades
 
 @router.post("/propiedades", response_model=schemas.PropiedadResponse, status_code=status.HTTP_201_CREATED)
@@ -56,16 +60,19 @@ def create_propiedad(
 # --- Clientes, Propietarios, Agentes ---
 
 @router.get("/clientes")
-def get_clientes(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
-    clientes = db.query(Cliente).join(Usuario).filter(Usuario.id_tenant == current_user.id_tenant).all()
-    return [{"id_cliente": c.id_cliente, "ci_usuario": c.ci_usuario, "nombre": c.usuario.nombre, "correo": c.usuario.correo} for c in clientes]
+def get_clientes(id_tenant: int = None, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
+    if current_user.id_rol == 1 and id_tenant:
+        clientes = db.query(Cliente).join(Usuario).filter(Usuario.id_tenant == id_tenant).all()
+    else:
+        clientes = db.query(Cliente).join(Usuario).filter(Usuario.id_tenant == current_user.id_tenant).all()
+    return [{"id_cliente": c.id_cliente, "id_usuario": c.id_usuario, "nombre": c.usuario.nombre, "correo": c.usuario.correo} for c in clientes]
 
 @router.post("/clientes")
 def create_cliente(data: schemas.ClienteCreate, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
-    user = db.query(Usuario).filter(Usuario.ci == data.ci_usuario).first()
+    user = db.query(Usuario).filter(Usuario.ci == data.usuario.ci).first()
     if not user and data.nombre and data.correo and data.password:
         user = Usuario(
-            ci=data.ci_usuario,
+            ci=data.usuario.ci,
             nombre=data.nombre,
             correo=data.correo,
             telefono=data.telefono,
@@ -78,7 +85,7 @@ def create_cliente(data: schemas.ClienteCreate, db: Session = Depends(get_db), c
     elif not user:
         raise HTTPException(status_code=400, detail="El usuario con este CI no existe. Por favor regístrelo primero en la sección 'Gestión de Usuarios'.")
         
-    nuevo = Cliente(ci_usuario=data.ci_usuario)
+    nuevo = Cliente(id_usuario=user.id)
     db.add(nuevo)
     db.commit()
     return nuevo
@@ -92,16 +99,19 @@ def delete_cliente(id: int, db: Session = Depends(get_db)):
     return {"ok": True}
 
 @router.get("/propietarios")
-def get_propietarios(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
-    propietarios = db.query(Propietario).join(Usuario).filter(Usuario.id_tenant == current_user.id_tenant).all()
-    return [{"id_propietario": p.id_propietario, "ci_usuario": p.ci_usuario, "nombre": p.usuario.nombre, "correo": p.usuario.correo} for p in propietarios]
+def get_propietarios(id_tenant: int = None, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
+    if current_user.id_rol == 1 and id_tenant:
+        propietarios = db.query(Propietario).join(Usuario).filter(Usuario.id_tenant == id_tenant).all()
+    else:
+        propietarios = db.query(Propietario).join(Usuario).filter(Usuario.id_tenant == current_user.id_tenant).all()
+    return [{"id_propietario": p.id_propietario, "id_usuario": p.id_usuario, "nombre": p.usuario.nombre, "correo": p.usuario.correo} for p in propietarios]
 
 @router.post("/propietarios")
 def create_propietario(data: schemas.PropietarioCreate, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
-    user = db.query(Usuario).filter(Usuario.ci == data.ci_usuario).first()
+    user = db.query(Usuario).filter(Usuario.ci == data.usuario.ci).first()
     if not user and data.nombre and data.correo and data.password:
         user = Usuario(
-            ci=data.ci_usuario,
+            ci=data.usuario.ci,
             nombre=data.nombre,
             correo=data.correo,
             telefono=data.telefono,
@@ -118,7 +128,7 @@ def create_propietario(data: schemas.PropietarioCreate, db: Session = Depends(ge
         user.id_rol = 4
         db.commit()
         
-    nuevo = Propietario(ci_usuario=data.ci_usuario)
+    nuevo = Propietario(id_usuario=user.id)
     db.add(nuevo)
     db.commit()
     return nuevo
@@ -132,26 +142,29 @@ def delete_propietario(id: int, db: Session = Depends(get_db)):
     return {"ok": True}
 
 @router.get("/agentes")
-def get_agentes(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
-    agentes = db.query(Agente).join(Usuario).filter(Usuario.id_tenant == current_user.id_tenant).all()
-    return [{"id_agente": a.id_agente, "nombre": a.usuario.nombre, "ci": a.ci_usuario} for a in agentes]
+def get_agentes(id_tenant: int = None, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
+    if current_user.id_rol == 1 and id_tenant:
+        agentes = db.query(Agente).join(Usuario).filter(Usuario.id_tenant == id_tenant).all()
+    else:
+        agentes = db.query(Agente).join(Usuario).filter(Usuario.id_tenant == current_user.id_tenant).all()
+    return [{"id_agente": a.id_agente, "nombre": a.usuario.nombre, "id_usuario": a.id_usuario} for a in agentes]
 
 @router.get("/propietarios_list")
 def get_propietarios_list(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
     propietarios = db.query(Propietario).join(Usuario).filter(Usuario.id_tenant == current_user.id_tenant).all()
-    return [{"id_propietario": p.id_propietario, "nombre": p.usuario.nombre, "ci": p.ci_usuario} for p in propietarios]
+    return [{"id_propietario": p.id_propietario, "nombre": p.usuario.nombre, "id_usuario": p.id_usuario} for p in propietarios]
 
 @router.get("/clientes_list")
 def get_clientes_list(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
     clientes = db.query(Cliente).join(Usuario).filter(Usuario.id_tenant == current_user.id_tenant).all()
-    return [{"id_cliente": c.id_cliente, "nombre": c.usuario.nombre, "ci": c.ci_usuario} for c in clientes]
+    return [{"id_cliente": c.id_cliente, "nombre": c.usuario.nombre, "id_usuario": c.id_usuario} for c in clientes]
 
 @router.post("/agentes")
 def create_agente(data: schemas.AgenteCreate, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_tenant_user)):
-    user = db.query(Usuario).filter(Usuario.ci == data.ci_usuario).first()
+    user = db.query(Usuario).filter(Usuario.ci == data.usuario.ci).first()
     if not user and data.nombre and data.correo and data.password:
         user = Usuario(
-            ci=data.ci_usuario,
+            ci=data.usuario.ci,
             nombre=data.nombre,
             correo=data.correo,
             telefono=data.telefono,
@@ -164,7 +177,7 @@ def create_agente(data: schemas.AgenteCreate, db: Session = Depends(get_db), cur
     elif not user:
         raise HTTPException(status_code=400, detail="El usuario no existe. Debe proporcionar nombre, correo y contraseña para crearlo.")
         
-    nuevo = Agente(ci_usuario=data.ci_usuario)
+    nuevo = Agente(id_usuario=user.id)
     db.add(nuevo)
     db.commit()
     return nuevo
