@@ -18,7 +18,7 @@ with Session(engine) as db:
     db.add_all([r1, r2, r3])
     
     # Tenant
-    tenant = Tenant(nombre="Inmobiliaria Premium", plan="pro", max_propiedades=50)
+    tenant = Tenant(nombre="Inmobiliaria Premium", slug="inmo-premium", plan="pro", max_propiedades=50)
     db.add(tenant)
     db.commit()
     

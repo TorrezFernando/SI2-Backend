@@ -70,6 +70,23 @@ class Propiedad(Base):
     caracteristicas = relationship("Caracteristica", back_populates="propiedad")
     visitas = relationship("Visita", back_populates="propiedad")
     contratos = relationship("Contrato", back_populates="propiedad")
+    detalle = relationship("PropiedadDetalle", uselist=False, cascade="all, delete-orphan")
+
+    @property
+    def descripcion(self):
+        return self.detalle.descripcion if self.detalle else ""
+
+    @descripcion.setter
+    def descripcion(self, value):
+        if not self.detalle:
+            self.detalle = PropiedadDetalle(descripcion=value)
+        else:
+            self.detalle.descripcion = value
+
+class PropiedadDetalle(Base):
+    __tablename__ = "propiedad_detalle"
+    id_propiedad = Column(Integer, ForeignKey("propiedad.id_propiedad", ondelete="CASCADE"), primary_key=True)
+    descripcion = Column(Text, nullable=False, default="")
 
 class TipoInmueble(Base):
     __tablename__ = "tipo_inmueble"

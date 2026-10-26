@@ -1,76 +1,51 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Literal
 from decimal import Decimal
 
-# --- Cliente ---
-class ClienteBase(BaseModel):
-    ci_usuario: str
+Operacion = Literal["Venta", "Alquiler", "Anticretico"]
+Estado = Literal["Disponible", "Reservada", "Vendida", "Alquilada", "Anticretico"]
 
-class ClienteCreate(ClienteBase):
-    nombre: Optional[str] = None
-    correo: Optional[str] = None
-    telefono: Optional[str] = None
-    password: Optional[str] = None
+class PersonaCreate(BaseModel):
+    ci_usuario: str = Field(min_length=1, max_length=20)
+    nombre: str | None = None
+    correo: str | None = None
+    telefono: str | None = None
+    password: str | None = None
+    id_tenant: int | None = None
 
-class ClienteResponse(ClienteBase):
-    id_cliente: int
-    class Config:
-        from_attributes = True
+ClienteCreate = PersonaCreate
+PropietarioCreate = PersonaCreate
+AgenteCreate = PersonaCreate
 
-# --- Propietario ---
-class PropietarioBase(BaseModel):
-    ci_usuario: str
-
-class PropietarioCreate(PropietarioBase):
-    nombre: Optional[str] = None
-    correo: Optional[str] = None
-    telefono: Optional[str] = None
-    password: Optional[str] = None
-
-class PropietarioResponse(PropietarioBase):
-    id_propietario: int
-    class Config:
-        from_attributes = True
-
-# --- Agente ---
-class AgenteBase(BaseModel):
-    ci_usuario: str
-
-class AgenteCreate(AgenteBase):
-    nombre: Optional[str] = None
-    correo: Optional[str] = None
-    telefono: Optional[str] = None
-    password: Optional[str] = None
-
-class AgenteResponse(AgenteBase):
-    id_agente: int
-    class Config:
-        from_attributes = True
-
-# --- Imagen ---
 class ImagenResponse(BaseModel):
     id_imagen: int
     url: str
     class Config:
         from_attributes = True
 
-# --- Propiedad ---
 class PropiedadBase(BaseModel):
-    titulo: str
-    direccion: str
-    precio: Decimal
-    tipo_operacion: str
-    estado: str = "Disponible"
-    id_propietario: int
-    id_agente: int
+    titulo: str = Field(min_length=1, max_length=150)
+    direccion: str = Field(min_length=1, max_length=255)
+    precio: Decimal = Field(gt=0, le=9999999999.99)
+    tipo_operacion: Operacion
+    estado: Estado = "Disponible"
+    id_propietario: int = Field(gt=0)
+    id_agente: int = Field(gt=0)
+    id_tipo_inmueble: int = Field(gt=0)
+    id_zona: int = Field(gt=0)
+    habitaciones: int | None = Field(default=None, ge=0)
+    banos: int | None = Field(default=None, ge=0)
+    superficie_m2: Decimal | None = Field(default=None, gt=0, le=99999999.99)
+    garaje: bool = False
+    antiguedad_anios: int | None = Field(default=None, ge=0)
+    descripcion: str = Field(default="", max_length=10000)
 
 class PropiedadCreate(PropiedadBase):
-    pass
+    id_tenant: int | None = None
 
 class PropiedadResponse(PropiedadBase):
     id_propiedad: int
     id_tenant: int
-    imagenes: List[ImagenResponse] = []
-    
+    imagenes: list[ImagenResponse] = Field(default_factory=list)
     class Config:
         from_attributes = True
