@@ -8,4 +8,6 @@ __pycache__/
 
 *.db
 uploads/
+*service-account*.json
+*firebase-adminsdk*.json
 

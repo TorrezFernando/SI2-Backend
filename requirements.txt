@@ -28,3 +28,5 @@ uvicorn==0.28.0
 # Servicios opcionales (activar scheduler explícitamente en un único proceso).
 APScheduler>=3.10,<4
 google-genai>=1,<2
+reportlab>=4,<5
+firebase-admin>=6,<8

@@ -21,15 +21,25 @@ from modulo_administracion_configuracion.backup_manager import router as backups
 from ia_router import router as ia_router
 from reportes import router as reportes_router
 from planes import router as planes_router, PlanName, PLANS, initialize, summary
+from operaciones import router as operaciones_router
 
 @asynccontextmanager
 async def lifespan(app):
     scheduler = iniciar_scheduler() if os.getenv("ENABLE_SCHEDULER", "false").lower() == "true" else None
+    push_scheduler = None
+    if os.getenv("ENABLE_FCM_SCHEDULER", "false").lower() == "true":
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from operaciones import enviar_avisos
+        push_scheduler = BackgroundScheduler(timezone="America/La_Paz")
+        push_scheduler.add_job(enviar_avisos,"interval",hours=1,max_instances=1,coalesce=True)
+        push_scheduler.start()
     try:
         yield
     finally:
         if scheduler:
             scheduler.shutdown(wait=False)
+        if push_scheduler:
+            push_scheduler.shutdown(wait=False)
 
 app = FastAPI(title="Raíces - Inmobiliaria Multi-Tenant API",version="2.1.0",lifespan=lifespan)
 app.add_middleware(CORSMiddleware,
@@ -227,6 +237,6 @@ app.add_api_route("/roles",create_rol,methods=["POST"])
 
 os.makedirs("uploads",exist_ok=True)
 app.mount("/uploads",StaticFiles(directory="uploads"),name="uploads")
-for router in (usuarios_router,inmuebles_router,backups_router,ia_router,reportes_router,planes_router):
+for router in (usuarios_router,inmuebles_router,backups_router,ia_router,reportes_router,planes_router,operaciones_router):
     app.include_router(router)
 Base.metadata.create_all(bind=engine)

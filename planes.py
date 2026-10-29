@@ -29,7 +29,7 @@ TERMS = [
 PLANS = {
     "normal": {"nombre":"Normal","empleados":int(os.getenv("PLAN_NORMAL_EMPLEADOS","10")),"catalogo":int(os.getenv("PLAN_NORMAL_CATALOGO","20")),"ia":[]},
     "pro": {"nombre":"Pro","empleados":None,"catalogo":int(os.getenv("PLAN_PRO_CATALOGO","100")),"ia":["chat"]},
-    "premium": {"nombre":"Premium","empleados":None,"catalogo":None,"ia":["chat","descripcion","reportes"]},
+    "premium": {"nombre":"Premium","empleados":None,"catalogo":None,"ia":["chat","descripcion","reportes","tasacion"]},
 }
 router = APIRouter(prefix="/suscripciones",tags=["Planes y suscripciones"])
 

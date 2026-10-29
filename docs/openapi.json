@@ -1,0 +1,4725 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Raíces - Inmobiliaria Multi-Tenant API",
+    "version": "2.1.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Read Root",
+        "operationId": "read_root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health Check",
+        "operationId": "health_check_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "summary": "Login Alias",
+        "operationId": "login_alias_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Get Me Alias",
+        "operationId": "get_me_alias_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "summary": "Get Me Alias",
+        "operationId": "get_me_alias_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/admin/empresas": {
+      "get": {
+        "summary": "Empresas",
+        "operationId": "empresas_admin_empresas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Empresa",
+        "operationId": "create_empresa_admin_empresas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmpresaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/admin/empresas/{id_empresa}/reset-admin-password": {
+      "put": {
+        "summary": "Reset Admin Password",
+        "operationId": "reset_admin_password_admin_empresas__id_empresa__reset_admin_password_put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_empresa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Empresa"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/bitacora": {
+      "get": {
+        "summary": "Bitacora",
+        "operationId": "bitacora_admin_bitacora_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/admin/backup": {
+      "get": {
+        "summary": "Backup",
+        "operationId": "backup_admin_backup_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/admin/restore": {
+      "post": {
+        "summary": "Restore Backup",
+        "operationId": "restore_backup_admin_restore_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_restore_backup_admin_restore_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/permisos": {
+      "get": {
+        "summary": "Get Permisos",
+        "operationId": "get_permisos_permisos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/roles/{id_rol}/permisos": {
+      "put": {
+        "summary": "Update Rol Permisos",
+        "operationId": "update_rol_permisos_roles__id_rol__permisos_put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_rol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Rol"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "title": "Permisos Ids"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "summary": "Forgot Password Endpoint",
+        "operationId": "forgot_password_endpoint_auth_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gestion_usuarios/auth/forgot-password": {
+      "post": {
+        "summary": "Forgot Password Endpoint",
+        "operationId": "forgot_password_endpoint_gestion_usuarios_auth_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "summary": "Reset Password Endpoint",
+        "operationId": "reset_password_endpoint_auth_reset_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Logout Endpoint",
+        "operationId": "logout_endpoint_auth_logout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/LogoutRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Req"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "summary": "Upload File Endpoint",
+        "operationId": "upload_file_endpoint_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_file_endpoint_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/roles": {
+      "get": {
+        "summary": "Get Roles",
+        "operationId": "get_roles_roles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Rol",
+        "operationId": "create_rol_roles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/gestion_usuarios/auth/register": {
+      "post": {
+        "tags": [
+          "Gestión de Usuarios"
+        ],
+        "summary": "Register User",
+        "operationId": "register_user_gestion_usuarios_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistroPublico"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gestion_usuarios/auth/login": {
+      "post": {
+        "tags": [
+          "Gestión de Usuarios"
+        ],
+        "summary": "Login",
+        "operationId": "login_gestion_usuarios_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gestion_usuarios/roles": {
+      "get": {
+        "tags": [
+          "Gestión de Usuarios"
+        ],
+        "summary": "Get Roles",
+        "operationId": "get_roles_gestion_usuarios_roles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Gestión de Usuarios"
+        ],
+        "summary": "Create Rol",
+        "operationId": "create_rol_gestion_usuarios_roles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/gestion_usuarios/users/me/password": {
+      "put": {
+        "tags": [
+          "Gestión de Usuarios"
+        ],
+        "summary": "Update Password",
+        "operationId": "update_password_gestion_usuarios_users_me_password_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/gestion_usuarios/usuarios": {
+      "get": {
+        "tags": [
+          "Gestión de Usuarios"
+        ],
+        "summary": "Get Usuarios",
+        "operationId": "get_usuarios_gestion_usuarios_usuarios_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_tenant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UsuarioResponse"
+                  },
+                  "title": "Response Get Usuarios Gestion Usuarios Usuarios Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Gestión de Usuarios"
+        ],
+        "summary": "Create Usuario",
+        "operationId": "create_usuario_gestion_usuarios_usuarios_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/tipos": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Tipos",
+        "operationId": "tipos_modulo_inmuebles_tipos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/modulo_inmuebles/zonas": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Zonas",
+        "operationId": "zonas_modulo_inmuebles_zonas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/modulo_inmuebles/propiedades/catalogo": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Get Catalogo",
+        "operationId": "get_catalogo_modulo_inmuebles_propiedades_catalogo_get",
+        "parameters": [
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Disponible",
+                "Reservada",
+                "Vendida",
+                "Alquilada",
+                "Anticretico"
+              ],
+              "type": "string",
+              "default": "Disponible",
+              "title": "Estado"
+            }
+          },
+          {
+            "name": "tipo_operacion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "Venta",
+                    "Alquiler",
+                    "Anticretico"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tipo Operacion"
+            }
+          },
+          {
+            "name": "precio_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Precio Min"
+            }
+          },
+          {
+            "name": "precio_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Precio Max"
+            }
+          },
+          {
+            "name": "cuartos",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cuartos"
+            }
+          },
+          {
+            "name": "banos",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Banos"
+            }
+          },
+          {
+            "name": "metros_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Metros Min"
+            }
+          },
+          {
+            "name": "metros_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Metros Max"
+            }
+          },
+          {
+            "name": "zona",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Zona"
+            }
+          },
+          {
+            "name": "id_tenant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Tenant"
+            }
+          },
+          {
+            "name": "salas",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Salas"
+            }
+          },
+          {
+            "name": "amueblado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Amueblado"
+            }
+          },
+          {
+            "name": "servicios_basicos",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Servicios Basicos"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PropiedadResponse"
+                  },
+                  "title": "Response Get Catalogo Modulo Inmuebles Propiedades Catalogo Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/propiedades": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Get Propiedades",
+        "operationId": "get_propiedades_modulo_inmuebles_propiedades_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_tenant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PropiedadResponse"
+                  },
+                  "title": "Response Get Propiedades Modulo Inmuebles Propiedades Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Create Propiedad",
+        "operationId": "create_propiedad_modulo_inmuebles_propiedades_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropiedadCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/propiedades/{id_propiedad}": {
+      "put": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Edit Propiedad",
+        "operationId": "edit_propiedad_modulo_inmuebles_propiedades__id_propiedad__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_propiedad",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Propiedad"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropiedadCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Delete Propiedad",
+        "operationId": "delete_propiedad_modulo_inmuebles_propiedades__id_propiedad__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_propiedad",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Propiedad"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/clientes_list": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Get Clientes",
+        "operationId": "get_clientes_modulo_inmuebles_clientes_list_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_tenant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/clientes": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Get Clientes",
+        "operationId": "get_clientes_modulo_inmuebles_clientes_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_tenant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Create Cliente",
+        "operationId": "create_cliente_modulo_inmuebles_clientes_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/clientes/{id}": {
+      "delete": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Delete Cliente",
+        "operationId": "delete_cliente_modulo_inmuebles_clientes__id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/propietarios_list": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Get Propietarios",
+        "operationId": "get_propietarios_modulo_inmuebles_propietarios_list_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_tenant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/propietarios": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Get Propietarios",
+        "operationId": "get_propietarios_modulo_inmuebles_propietarios_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_tenant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Create Propietario",
+        "operationId": "create_propietario_modulo_inmuebles_propietarios_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/propietarios/{id}": {
+      "delete": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Delete Propietario",
+        "operationId": "delete_propietario_modulo_inmuebles_propietarios__id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Edit Propietario",
+        "operationId": "edit_propietario_modulo_inmuebles_propietarios__id__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/agentes": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Get Agentes",
+        "operationId": "get_agentes_modulo_inmuebles_agentes_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_tenant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Tenant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Create Agente",
+        "operationId": "create_agente_modulo_inmuebles_agentes_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/agentes/{id}": {
+      "delete": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Delete Agente",
+        "operationId": "delete_agente_modulo_inmuebles_agentes__id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/propiedades/{id_propiedad}/estado": {
+      "put": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Update Estado",
+        "operationId": "update_estado_modulo_inmuebles_propiedades__id_propiedad__estado_put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_propiedad",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Propiedad"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstadoUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropiedadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/propiedades/{id_propiedad}/imagenes": {
+      "post": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Upload Imagen",
+        "operationId": "upload_imagen_modulo_inmuebles_propiedades__id_propiedad__imagenes_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_propiedad",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Propiedad"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_imagen_modulo_inmuebles_propiedades__id_propiedad__imagenes_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImagenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modulo_inmuebles/visitas": {
+      "get": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Mis Visitas",
+        "operationId": "mis_visitas_modulo_inmuebles_visitas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Módulo de Inmuebles"
+        ],
+        "summary": "Agendar Visita",
+        "operationId": "agendar_visita_modulo_inmuebles_visitas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VisitaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/backup/manual": {
+      "post": {
+        "tags": [
+          "Backups"
+        ],
+        "summary": "Crear Backup Manual",
+        "operationId": "crear_backup_manual_api_backup_manual_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/ia/reporte-voz": {
+      "post": {
+        "tags": [
+          "IA"
+        ],
+        "summary": "Generar Reporte Por Voz",
+        "operationId": "generar_reporte_por_voz_api_ia_reporte_voz_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VozRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/ia/generar-descripcion": {
+      "post": {
+        "tags": [
+          "IA"
+        ],
+        "summary": "Generar Descripcion",
+        "operationId": "generar_descripcion_api_ia_generar_descripcion_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescripcionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/ia/chat-catalogo": {
+      "post": {
+        "tags": [
+          "IA"
+        ],
+        "summary": "Chat Catalogo",
+        "operationId": "chat_catalogo_api_ia_chat_catalogo_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/reportes/generar": {
+      "post": {
+        "tags": [
+          "Reportes"
+        ],
+        "summary": "Generar Reporte",
+        "operationId": "generar_reporte_reportes_generar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporteConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/reportes/guardados": {
+      "get": {
+        "tags": [
+          "Reportes"
+        ],
+        "summary": "Guardados",
+        "operationId": "guardados_reportes_guardados_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Reportes"
+        ],
+        "summary": "Guardar",
+        "operationId": "guardar_reportes_guardados_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuardarReporte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/suscripciones/planes": {
+      "get": {
+        "tags": [
+          "Planes y suscripciones"
+        ],
+        "summary": "Plans",
+        "operationId": "plans_suscripciones_planes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suscripciones/terminos": {
+      "get": {
+        "tags": [
+          "Planes y suscripciones"
+        ],
+        "summary": "Terms",
+        "operationId": "terms_suscripciones_terminos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suscripciones/mi-estado": {
+      "get": {
+        "tags": [
+          "Planes y suscripciones"
+        ],
+        "summary": "My State",
+        "operationId": "my_state_suscripciones_mi_estado_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/suscripciones/{tid}/plan": {
+      "put": {
+        "tags": [
+          "Planes y suscripciones"
+        ],
+        "summary": "Change Plan",
+        "operationId": "change_plan_suscripciones__tid__plan_put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Tid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambioPlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suscripciones/{tid}/pagos-simulados": {
+      "post": {
+        "tags": [
+          "Planes y suscripciones"
+        ],
+        "summary": "Pay",
+        "operationId": "pay_suscripciones__tid__pagos_simulados_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Tid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimularPago"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suscripciones/{tid}/pagos": {
+      "get": {
+        "tags": [
+          "Planes y suscripciones"
+        ],
+        "summary": "History",
+        "operationId": "history_suscripciones__tid__pagos_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Tid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suscripciones/{tid}/renovacion": {
+      "put": {
+        "tags": [
+          "Planes y suscripciones"
+        ],
+        "summary": "Renewal",
+        "operationId": "renewal_suscripciones__tid__renovacion_put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Tid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Renovacion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contratos": {
+      "get": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Contratos",
+        "operationId": "contratos_api_contratos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CuentaResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Alta Contrato",
+        "operationId": "alta_contrato_api_contratos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AltaContrato"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/mi-cuenta": {
+      "get": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Mi Cuenta",
+        "operationId": "mi_cuenta_api_mi_cuenta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CuentaResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/contratos/{cid}/cuotas": {
+      "get": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Cuotas",
+        "operationId": "cuotas_api_contratos__cid__cuotas_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Cid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CuotaResponse"
+                  },
+                  "title": "Response Cuotas Api Contratos  Cid  Cuotas Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cuotas/{qid}/pagos": {
+      "post": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Pagar",
+        "operationId": "pagar_api_cuotas__qid__pagos_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "qid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Qid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagoCuota"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pagos/{pid}/recibo.pdf": {
+      "get": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Pdf Recibo",
+        "operationId": "pdf_recibo_api_pagos__pid__recibo_pdf_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Pid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pagos/{pid}/enviar-recibo": {
+      "post": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Enviar Recibo",
+        "operationId": "enviar_recibo_api_pagos__pid__enviar_recibo_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Pid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notificaciones/tokens": {
+      "get": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Tokens",
+        "operationId": "tokens_api_notificaciones_tokens_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Registrar Token",
+        "operationId": "registrar_token_api_notificaciones_tokens_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenFCM"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/notificaciones/tokens/{ident}": {
+      "delete": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Baja Token",
+        "operationId": "baja_token_api_notificaciones_tokens__ident__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notificaciones/procesar": {
+      "post": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Procesar",
+        "operationId": "procesar_api_notificaciones_procesar_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/ia/tasaciones": {
+      "post": {
+        "tags": [
+          "Operaciones sprint 3"
+        ],
+        "summary": "Tasar",
+        "operationId": "tasar_api_ia_tasaciones_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TasacionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TasacionIA"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AltaContrato": {
+        "properties": {
+          "id_cliente": {
+            "type": "integer",
+            "title": "Id Cliente"
+          },
+          "id_propiedad": {
+            "type": "integer",
+            "title": "Id Propiedad"
+          },
+          "id_agente": {
+            "type": "integer",
+            "title": "Id Agente"
+          },
+          "tipo_contrato": {
+            "type": "string",
+            "enum": [
+              "Venta",
+              "Alquiler",
+              "Anticretico"
+            ],
+            "title": "Tipo Contrato"
+          },
+          "monto_total": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Monto Total"
+          },
+          "fecha_inicio": {
+            "type": "string",
+            "format": "date",
+            "title": "Fecha Inicio"
+          },
+          "fecha_fin": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha Fin"
+          },
+          "cuotas": {
+            "type": "integer",
+            "maximum": 360.0,
+            "minimum": 1.0,
+            "title": "Cuotas"
+          },
+          "primer_vencimiento": {
+            "type": "string",
+            "format": "date",
+            "title": "Primer Vencimiento"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_cliente",
+          "id_propiedad",
+          "id_agente",
+          "tipo_contrato",
+          "monto_total",
+          "fecha_inicio",
+          "cuotas",
+          "primer_vencimiento"
+        ],
+        "title": "AltaContrato"
+      },
+      "Body_restore_backup_admin_restore_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_restore_backup_admin_restore_post"
+      },
+      "Body_upload_file_endpoint_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_file_endpoint_upload_post"
+      },
+      "Body_upload_imagen_modulo_inmuebles_propiedades__id_propiedad__imagenes_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_imagen_modulo_inmuebles_propiedades__id_propiedad__imagenes_post"
+      },
+      "CambioPlan": {
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "pro",
+              "premium"
+            ],
+            "title": "Plan"
+          },
+          "acepta_terminos": {
+            "type": "boolean",
+            "title": "Acepta Terminos",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan"
+        ],
+        "title": "CambioPlan"
+      },
+      "ChatRequest": {
+        "properties": {
+          "mensaje": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Mensaje"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mensaje"
+        ],
+        "title": "ChatRequest"
+      },
+      "ContratoResponse": {
+        "properties": {
+          "id_contrato": {
+            "type": "integer",
+            "title": "Id Contrato"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "monto_total": {
+            "type": "string",
+            "title": "Monto Total"
+          },
+          "pagado": {
+            "type": "string",
+            "title": "Pagado"
+          },
+          "saldo": {
+            "type": "string",
+            "title": "Saldo"
+          },
+          "cuotas": {
+            "items": {
+              "$ref": "#/components/schemas/CuotaResponse"
+            },
+            "type": "array",
+            "title": "Cuotas"
+          },
+          "pagos": {
+            "items": {
+              "$ref": "#/components/schemas/PagoResponse"
+            },
+            "type": "array",
+            "title": "Pagos"
+          },
+          "cronograma_disponible": {
+            "type": "boolean",
+            "title": "Cronograma Disponible"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_contrato",
+          "tipo",
+          "monto_total",
+          "pagado",
+          "saldo",
+          "cuotas",
+          "pagos",
+          "cronograma_disponible"
+        ],
+        "title": "ContratoResponse"
+      },
+      "CuentaResponse": {
+        "properties": {
+          "contratos": {
+            "items": {
+              "$ref": "#/components/schemas/ContratoResponse"
+            },
+            "type": "array",
+            "title": "Contratos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "contratos"
+        ],
+        "title": "CuentaResponse"
+      },
+      "CuotaResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "numero": {
+            "type": "integer",
+            "title": "Numero"
+          },
+          "id_contrato": {
+            "type": "integer",
+            "title": "Id Contrato"
+          },
+          "vencimiento": {
+            "type": "string",
+            "format": "date",
+            "title": "Vencimiento"
+          },
+          "monto": {
+            "type": "string",
+            "title": "Monto"
+          },
+          "pagado": {
+            "type": "string",
+            "title": "Pagado"
+          },
+          "saldo": {
+            "type": "string",
+            "title": "Saldo"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "pagada",
+              "vencida",
+              "pendiente"
+            ],
+            "title": "Estado"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "numero",
+          "id_contrato",
+          "vencimiento",
+          "monto",
+          "pagado",
+          "saldo",
+          "estado"
+        ],
+        "title": "CuotaResponse"
+      },
+      "DescripcionRequest": {
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Titulo"
+          },
+          "direccion": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Direccion"
+          },
+          "precio": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Precio"
+          },
+          "tipo_operacion": {
+            "type": "string",
+            "enum": [
+              "Venta",
+              "Alquiler",
+              "Anticretico"
+            ],
+            "title": "Tipo Operacion"
+          },
+          "imagen_base64": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imagen Base64"
+          },
+          "imagen_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imagen Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "titulo",
+          "direccion",
+          "precio",
+          "tipo_operacion"
+        ],
+        "title": "DescripcionRequest"
+      },
+      "EmpresaCreate": {
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "pro",
+              "premium"
+            ],
+            "title": "Plan"
+          },
+          "acepta_terminos": {
+            "type": "boolean",
+            "title": "Acepta Terminos",
+            "default": false
+          },
+          "admin_password": {
+            "type": "string",
+            "title": "Admin Password"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "dominio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dominio"
+          },
+          "admin_ci": {
+            "type": "string",
+            "title": "Admin Ci"
+          },
+          "admin_nombre": {
+            "type": "string",
+            "title": "Admin Nombre"
+          },
+          "admin_correo": {
+            "type": "string",
+            "title": "Admin Correo"
+          },
+          "admin_telefono": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Telefono"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "admin_password",
+          "nombre",
+          "admin_ci",
+          "admin_nombre",
+          "admin_correo"
+        ],
+        "title": "EmpresaCreate"
+      },
+      "EstadoUpdate": {
+        "properties": {
+          "estado": {
+            "type": "string",
+            "enum": [
+              "Disponible",
+              "Reservada",
+              "Vendida",
+              "Alquilada",
+              "Anticretico"
+            ],
+            "title": "Estado"
+          }
+        },
+        "type": "object",
+        "required": [
+          "estado"
+        ],
+        "title": "EstadoUpdate"
+      },
+      "Filtro": {
+        "properties": {
+          "columna": {
+            "type": "string",
+            "title": "Columna"
+          },
+          "operador": {
+            "type": "string",
+            "enum": [
+              "eq",
+              "like",
+              "gt",
+              "lt",
+              "gte",
+              "lte"
+            ],
+            "title": "Operador"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Valor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "columna",
+          "operador",
+          "valor"
+        ],
+        "title": "Filtro"
+      },
+      "ForgotPasswordRequest": {
+        "properties": {
+          "correo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correo"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "title": "ForgotPasswordRequest"
+      },
+      "GuardarReporte": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Nombre"
+          },
+          "configuracion": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Configuracion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre",
+          "configuracion"
+        ],
+        "title": "GuardarReporte"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ImagenResponse": {
+        "properties": {
+          "id_imagen": {
+            "type": "integer",
+            "title": "Id Imagen"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_imagen",
+          "url"
+        ],
+        "title": "ImagenResponse"
+      },
+      "LogoutRequest": {
+        "properties": {
+          "refresh_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Token"
+          }
+        },
+        "type": "object",
+        "title": "LogoutRequest"
+      },
+      "Orden": {
+        "properties": {
+          "columna": {
+            "type": "string",
+            "title": "Columna"
+          },
+          "direccion": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "title": "Direccion",
+            "default": "asc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "columna"
+        ],
+        "title": "Orden"
+      },
+      "PagoCuota": {
+        "properties": {
+          "monto": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Monto"
+          },
+          "clave_idempotencia": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 8,
+            "title": "Clave Idempotencia"
+          },
+          "confirma_simulacion": {
+            "type": "boolean",
+            "const": true,
+            "title": "Confirma Simulacion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "monto",
+          "clave_idempotencia",
+          "confirma_simulacion"
+        ],
+        "title": "PagoCuota"
+      },
+      "PagoResponse": {
+        "properties": {
+          "id_pago": {
+            "type": "integer",
+            "title": "Id Pago"
+          },
+          "monto": {
+            "type": "string",
+            "title": "Monto"
+          },
+          "fecha": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha"
+          },
+          "recibo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recibo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_pago",
+          "monto",
+          "fecha",
+          "recibo"
+        ],
+        "title": "PagoResponse"
+      },
+      "PasswordUpdate": {
+        "properties": {
+          "nueva_password": {
+            "type": "string",
+            "title": "Nueva Password"
+          },
+          "actual_password": {
+            "type": "string",
+            "title": "Actual Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nueva_password",
+          "actual_password"
+        ],
+        "title": "PasswordUpdate"
+      },
+      "PersonaCreate": {
+        "properties": {
+          "ci_usuario": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Ci Usuario"
+          },
+          "nombre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "correo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correo"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "id_tenant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Tenant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ci_usuario"
+        ],
+        "title": "PersonaCreate"
+      },
+      "PropiedadCreate": {
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Titulo"
+          },
+          "direccion": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Direccion"
+          },
+          "precio": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 9999999999.99,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Precio"
+          },
+          "tipo_operacion": {
+            "type": "string",
+            "enum": [
+              "Venta",
+              "Alquiler",
+              "Anticretico"
+            ],
+            "title": "Tipo Operacion"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "Disponible",
+              "Reservada",
+              "Vendida",
+              "Alquilada",
+              "Anticretico"
+            ],
+            "title": "Estado",
+            "default": "Disponible"
+          },
+          "id_propietario": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Propietario"
+          },
+          "id_agente": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Agente"
+          },
+          "id_tipo_inmueble": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Tipo Inmueble"
+          },
+          "id_zona": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Zona"
+          },
+          "habitaciones": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Habitaciones"
+          },
+          "banos": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banos"
+          },
+          "superficie_m2": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 99999999.99,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superficie M2"
+          },
+          "garaje": {
+            "type": "boolean",
+            "title": "Garaje",
+            "default": false
+          },
+          "antiguedad_anios": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Antiguedad Anios"
+          },
+          "descripcion": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Descripcion",
+            "default": ""
+          },
+          "id_tenant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Tenant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "titulo",
+          "direccion",
+          "precio",
+          "tipo_operacion",
+          "id_propietario",
+          "id_agente",
+          "id_tipo_inmueble",
+          "id_zona"
+        ],
+        "title": "PropiedadCreate"
+      },
+      "PropiedadResponse": {
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Titulo"
+          },
+          "direccion": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Direccion"
+          },
+          "precio": {
+            "type": "string",
+            "title": "Precio"
+          },
+          "tipo_operacion": {
+            "type": "string",
+            "enum": [
+              "Venta",
+              "Alquiler",
+              "Anticretico"
+            ],
+            "title": "Tipo Operacion"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "Disponible",
+              "Reservada",
+              "Vendida",
+              "Alquilada",
+              "Anticretico"
+            ],
+            "title": "Estado",
+            "default": "Disponible"
+          },
+          "id_propietario": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Propietario"
+          },
+          "id_agente": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Agente"
+          },
+          "id_tipo_inmueble": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Tipo Inmueble"
+          },
+          "id_zona": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Zona"
+          },
+          "habitaciones": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Habitaciones"
+          },
+          "banos": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banos"
+          },
+          "superficie_m2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superficie M2"
+          },
+          "garaje": {
+            "type": "boolean",
+            "title": "Garaje",
+            "default": false
+          },
+          "antiguedad_anios": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Antiguedad Anios"
+          },
+          "descripcion": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Descripcion",
+            "default": ""
+          },
+          "id_propiedad": {
+            "type": "integer",
+            "title": "Id Propiedad"
+          },
+          "id_tenant": {
+            "type": "integer",
+            "title": "Id Tenant"
+          },
+          "imagenes": {
+            "items": {
+              "$ref": "#/components/schemas/ImagenResponse"
+            },
+            "type": "array",
+            "title": "Imagenes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "titulo",
+          "direccion",
+          "precio",
+          "tipo_operacion",
+          "id_propietario",
+          "id_agente",
+          "id_tipo_inmueble",
+          "id_zona",
+          "id_propiedad",
+          "id_tenant"
+        ],
+        "title": "PropiedadResponse"
+      },
+      "RegistroPublico": {
+        "properties": {
+          "ci": {
+            "type": "string",
+            "title": "Ci"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "correo": {
+            "type": "string",
+            "title": "Correo"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
+          },
+          "id_rol": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Rol"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "id_tenant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Tenant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ci",
+          "nombre",
+          "correo",
+          "password"
+        ],
+        "title": "RegistroPublico"
+      },
+      "Renovacion": {
+        "properties": {
+          "activa": {
+            "type": "boolean",
+            "title": "Activa"
+          },
+          "acepta_terminos": {
+            "type": "boolean",
+            "title": "Acepta Terminos",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "activa"
+        ],
+        "title": "Renovacion"
+      },
+      "ReporteConfig": {
+        "properties": {
+          "entidad": {
+            "type": "string",
+            "enum": [
+              "propiedades",
+              "usuarios"
+            ],
+            "title": "Entidad",
+            "default": "propiedades"
+          },
+          "columnas": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Columnas"
+          },
+          "filtros": {
+            "items": {
+              "$ref": "#/components/schemas/Filtro"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Filtros"
+          },
+          "orden": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Orden"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limite": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Limite",
+            "default": 1000
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "ReporteConfig"
+      },
+      "ResetPasswordRequest": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "new_password": {
+            "type": "string",
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "new_password"
+        ],
+        "title": "ResetPasswordRequest"
+      },
+      "RolCreate": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre"
+        ],
+        "title": "RolCreate"
+      },
+      "SimularPago": {
+        "properties": {
+          "periodo": {
+            "type": "string",
+            "format": "date",
+            "title": "Periodo"
+          },
+          "confirma_simulacion": {
+            "type": "boolean",
+            "title": "Confirma Simulacion",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "periodo"
+        ],
+        "title": "SimularPago"
+      },
+      "TasacionIA": {
+        "properties": {
+          "minimo": {
+            "type": "string",
+            "title": "Minimo"
+          },
+          "estimado": {
+            "type": "string",
+            "title": "Estimado"
+          },
+          "maximo": {
+            "type": "string",
+            "title": "Maximo"
+          },
+          "explicacion": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 10,
+            "title": "Explicacion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "minimo",
+          "estimado",
+          "maximo",
+          "explicacion"
+        ],
+        "title": "TasacionIA"
+      },
+      "TasacionRequest": {
+        "properties": {
+          "id_propiedad": {
+            "type": "integer",
+            "title": "Id Propiedad"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_propiedad"
+        ],
+        "title": "TasacionRequest"
+      },
+      "TokenFCM": {
+        "properties": {
+          "dispositivo": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Dispositivo"
+          },
+          "token": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 20,
+            "title": "Token"
+          },
+          "plataforma": {
+            "type": "string",
+            "enum": [
+              "web",
+              "android",
+              "ios"
+            ],
+            "title": "Plataforma"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dispositivo",
+          "token",
+          "plataforma"
+        ],
+        "title": "TokenFCM"
+      },
+      "UsuarioCreate": {
+        "properties": {
+          "ci": {
+            "type": "string",
+            "title": "Ci"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "correo": {
+            "type": "string",
+            "title": "Correo"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
+          },
+          "id_rol": {
+            "type": "integer",
+            "title": "Id Rol"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "id_tenant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Tenant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ci",
+          "nombre",
+          "correo",
+          "id_rol",
+          "password"
+        ],
+        "title": "UsuarioCreate"
+      },
+      "UsuarioLogin": {
+        "properties": {
+          "correo": {
+            "type": "string",
+            "title": "Correo"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "id_tenant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Tenant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "correo",
+          "password"
+        ],
+        "title": "UsuarioLogin"
+      },
+      "UsuarioResponse": {
+        "properties": {
+          "ci": {
+            "type": "string",
+            "title": "Ci"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "correo": {
+            "type": "string",
+            "title": "Correo"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
+          },
+          "id_rol": {
+            "type": "integer",
+            "title": "Id Rol"
+          },
+          "id_tenant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Tenant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ci",
+          "nombre",
+          "correo",
+          "id_rol"
+        ],
+        "title": "UsuarioResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VisitaCreate": {
+        "properties": {
+          "id_propiedad": {
+            "type": "integer",
+            "title": "Id Propiedad"
+          },
+          "fecha_hora": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Hora"
+          },
+          "comentario": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Comentario",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_propiedad",
+          "fecha_hora"
+        ],
+        "title": "VisitaCreate"
+      },
+      "VozRequest": {
+        "properties": {
+          "texto": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Texto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "texto"
+        ],
+        "title": "VozRequest"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "gestion_usuarios/auth/login"
+          }
+        }
+      }
+    }
+  }
+}
