@@ -47,7 +47,7 @@ class Suscripcion(Base):
 class PagoSuscripcion(Base):
     __tablename__ = "pago_suscripcion"
     id = Column(Integer,primary_key=True)
-    id_tenant = Column(Integer,ForeignKey("tenant.id_tenant"),nullable=False)
+    id_tenant = Column(Integer,ForeignKey("suscripcion.id_tenant"),nullable=False)
     periodo = Column(Date,nullable=False)
     nuevo_vencimiento = Column(Date,nullable=False)
     registrado_por = Column(Integer,ForeignKey("usuario.id"),nullable=False)
